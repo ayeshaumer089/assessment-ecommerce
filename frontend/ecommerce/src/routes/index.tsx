@@ -17,10 +17,11 @@ const ProductsPage      = lazy(() => import('@/pages/customer/ProductsPage'))
 const ProductDetailPage = lazy(() => import('@/pages/customer/ProductDetailPage'))
 
 // Protected customer pages
-const CartPage     = lazy(() => import('@/pages/customer/CartPage'))
-const CheckoutPage = lazy(() => import('@/pages/customer/CheckoutPage'))
-const OrdersPage   = lazy(() => import('@/pages/customer/OrdersPage'))
-const ProfilePage  = lazy(() => import('@/pages/customer/ProfilePage'))
+const CartPage          = lazy(() => import('@/pages/customer/CartPage'))
+const CheckoutPage      = lazy(() => import('@/pages/customer/CheckoutPage'))
+const OrderSuccessPage  = lazy(() => import('@/pages/customer/OrderSuccessPage'))
+const OrdersPage        = lazy(() => import('@/pages/customer/OrdersPage'))
+const ProfilePage       = lazy(() => import('@/pages/customer/ProfilePage'))
 
 // Admin pages
 const AdminDashboardPage = lazy(() => import('@/pages/admin/DashboardPage'))
@@ -49,10 +50,11 @@ export const router = createBrowserRouter([
       {
         element: <PrivateRoute />,
         children: [
-          { path: ROUTES.CUSTOMER.CART,     element: <CartPage />     },
-          { path: ROUTES.CUSTOMER.CHECKOUT, element: <CheckoutPage /> },
-          { path: ROUTES.CUSTOMER.ORDERS,   element: <OrdersPage />   },
-          { path: ROUTES.CUSTOMER.PROFILE,  element: <ProfilePage />  },
+          { path: ROUTES.CUSTOMER.CART,             element: <CartPage />          },
+          { path: ROUTES.CUSTOMER.CHECKOUT,         element: <CheckoutPage />      },
+          { path: ROUTES.CUSTOMER.CHECKOUT_SUCCESS, element: <OrderSuccessPage />  },
+          { path: ROUTES.CUSTOMER.ORDERS,           element: <OrdersPage />        },
+          { path: ROUTES.CUSTOMER.PROFILE,          element: <ProfilePage />       },
         ],
       },
     ],
