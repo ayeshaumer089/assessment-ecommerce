@@ -7,7 +7,6 @@ import {
   Param,
   Delete,
   Query,
-  UseGuards,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
@@ -15,8 +14,6 @@ import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { QueryProductDto } from './dto/query-product.dto';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Public } from '../common/decorators/public.decorator';
 import { ParseObjectIdPipe } from '../common/pipes/parse-object-id.pipe';
@@ -24,9 +21,10 @@ import { Role } from '../users/enums/role.enum';
 import { Types } from 'mongoose';
 
 @Controller('products')
-@UseGuards(JwtAuthGuard, RolesGuard)
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
+
+  // ── Public ──────────────────────────────────────────────────────────────────
 
   @Public()
   @Get()
