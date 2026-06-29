@@ -2,22 +2,22 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { orderService } from '@/services/orderService'
 import { QUERY_KEYS } from '@/constants/queryKeys'
 import { useAuth } from '@/context/AuthContext'
-import type { CreateOrderPayload } from '@/types'
+import type { OrderStatus, PaymentStatus } from '@/types'
 
 export function useOrders() {
-  const { user } = useAuth()
+  const { isAuthenticated } = useAuth()
 
   return useQuery({
-    queryKey: QUERY_KEYS.ORDERS(user?.id),
-    queryFn: () => orderService.getOrders(user?.id),
-    enabled: !!user,
+    queryKey: QUERY_KEYS.ORDERS(),
+    queryFn: () => orderService.getMyOrders(),
+    enabled: isAuthenticated,
   })
 }
 
 export function useAllOrders() {
   return useQuery({
-    queryKey: QUERY_KEYS.ORDERS(),
-    queryFn: () => orderService.getOrders(),
+    queryKey: QUERY_KEYS.ADMIN_ORDERS,
+    queryFn: () => orderService.getAllOrders(),
   })
 }
 
@@ -29,18 +29,19 @@ export function useOrder(id: string) {
   })
 }
 
-export function useCreateOrder() {
+export function useCheckout() {
   const { user } = useAuth()
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (payload: CreateOrderPayload) => {
+    mutationFn: async () => {
       if (!user) throw new Error('Must be logged in to place an order')
-      return orderService.createOrder(user.id, payload)
+      return orderService.checkout()
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ORDERS(user?.id) })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.CART })
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ORDERS() })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ADMIN_ORDERS })
     },
   })
 }
@@ -49,11 +50,12 @@ export function useUpdateOrderStatus() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ id, status }: { id: string; status: Parameters<typeof orderService.updateOrderStatus>[1] }) =>
-      orderService.updateOrderStatus(id, status),
+    mutationFn: ({ id, status, paymentStatus }: { id: string; status: OrderStatus; paymentStatus?: PaymentStatus }) =>
+      orderService.updateOrderStatus(id, status, paymentStatus),
     onSuccess: (order) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ORDER(order.id) })
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ORDERS() })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ADMIN_ORDERS })
     },
   })
 }
@@ -66,6 +68,7 @@ export function useCancelOrder() {
     onSuccess: (order) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ORDER(order.id) })
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ORDERS() })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ADMIN_ORDERS })
     },
   })
 }

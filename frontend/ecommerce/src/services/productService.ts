@@ -24,7 +24,10 @@ function mapProduct(data: any): Product {
 export const productService = {
   async getProducts(filters: ProductFilters = {}): Promise<PaginatedResult<Product>> {
     const params: any = { ...filters }
-    const { data } = await api.get<any>('/products', { params })
+    if (params.sortBy) {
+      if (!params.sortOrder) params.sortOrder = params.order || 'desc'
+    }
+    const { data } = await api.get<PaginatedResult<Product>>('/products', { params })
     const items = (data.data || data.items || []).map(mapProduct)
     const total = data.meta?.total || data.total || items.length
     const page = data.meta?.page || data.page || 1
@@ -39,6 +42,10 @@ export const productService = {
       totalPages,
       meta: data.meta,
     }
+  },
+
+  async searchProducts(query: string): Promise<PaginatedResult<Product>> {
+    return this.getProducts({ search: query, limit: 100 })
   },
 
   async getFeaturedProducts(limit?: number): Promise<Product[]> {
@@ -56,6 +63,24 @@ export const productService = {
     const params = limit ? { limit } : {}
     const { data } = await api.get<Product[]>(`/products/${id}/recommendations`, { params })
     return data.map(mapProduct)
+  },
+
+  async getCategories(): Promise<{ slug: string; name: string }[]> {
+    // Since our backend doesn't have a categories endpoint yet, return static from seed
+    return [
+      { slug: 'electronics', name: 'Electronics' },
+      { slug: 'clothing', name: 'Clothing' },
+      { slug: 'home-garden', name: 'Home & Garden' },
+      { slug: 'books', name: 'Books' },
+      { slug: 'sports', name: 'Sports' },
+    ]
+  },
+
+  async getProductsByCategory(
+    category: string,
+    filters: Omit<ProductFilters, 'category' | 'search'> = {},
+  ): Promise<PaginatedResult<Product>> {
+    return this.getProducts({ ...filters, category })
   },
 
   // Admin functions

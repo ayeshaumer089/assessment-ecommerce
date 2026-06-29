@@ -2,9 +2,50 @@ import api from './axiosInstance'
 import type { Order, OrderStatus, PaymentStatus } from '@/types'
 
 function mapOrder(data: any): Order {
+  const items = (data.items || []).map((item: any) => ({
+    ...item,
+    productId: item.productId?._id || item.productId?.id || item.productId,
+    product: {
+      id: item.productId?._id || item.productId?.id || item.productId,
+      _id: item.productId?._id || item.productId?.id,
+      name: item.name,
+      price: item.price,
+      description: '',
+      image: '',
+      category: '',
+      stock: 0,
+      discountPercentage: 0,
+      discountedPrice: item.price,
+      brand: '',
+      sku: '',
+      tags: [],
+      rating: 0,
+      reviewCount: 0,
+      reviews: [],
+      images: [],
+      availabilityStatus: '',
+      shippingInformation: '',
+      warrantyInformation: '',
+      returnPolicy: '',
+      createdAt: '',
+    } as Product,
+  }))
+  
   return {
     ...data,
     id: data._id || data.id,
+    items,
+    total: data.totalAmount,
+    subtotal: data.totalAmount,
+    discountedTotal: data.totalAmount,
+    shippingAddress: {
+      street: '',
+      city: '',
+      state: '',
+      zipCode: '',
+      country: '',
+    },
+    paymentMethod: 'Mock Payment',
   }
 }
 

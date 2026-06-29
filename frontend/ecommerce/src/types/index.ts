@@ -82,6 +82,11 @@ export interface Order {
   paymentMethod?: string
   createdAt: string
   updatedAt?: string
+  // Compatibility with old UI:
+  // Calculate total from totalAmount if missing
+  get total(): number {
+    return this.totalAmount || 0
+  }
 }
 
 export interface Address {

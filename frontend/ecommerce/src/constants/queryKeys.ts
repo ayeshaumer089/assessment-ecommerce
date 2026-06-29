@@ -13,7 +13,15 @@ export const QUERY_KEYS = {
   ORDER: (id: string) => ['orders', id] as const,
 
   // Cart
-  CART: (userId: number) => ['cart', userId] as const,
+  CART: ['cart'] as const,
+
+  // Recommendations
+  RECOMMENDATIONS: (id: string) => ['products', id, 'recommendations'] as const,
+
+  // Admin
+  ADMIN_PRODUCTS: ['admin', 'products'] as const,
+  ADMIN_ORDERS: ['admin', 'orders'] as const,
+  DASHBOARD_STATS: ['dashboard', 'stats'] as const,
 
   // Auth
   ME: ['me'] as const,

@@ -7,60 +7,83 @@ import { useAuth } from '@/context/AuthContext'
 import type { Product } from '@/types'
 
 /** Fetches the server-side cart for a logged-in user. */
-export function useServerCart(userId: number) {
+export function useServerCart() {
+  const { isAuthenticated } = useAuth()
+  const store = useCartStore()
   return useQuery({
-    queryKey: QUERY_KEYS.CART(userId),
-    queryFn: () => cartService.getCart(userId),
-    enabled: !!userId,
+    queryKey: QUERY_KEYS.CART,
+    queryFn: async () => {
+      await store.fetchCart()
+      return store.cart
+    },
+    enabled: isAuthenticated,
     staleTime: 1000 * 60 * 2,
   })
 }
 
 /**
  * Primary cart hook for components.
- * Local Zustand store is the source of truth for UI state.
- * Server sync happens through mutations.
  */
 export function useCart() {
-  const { user } = useAuth()
+  const { isAuthenticated } = useAuth()
   const queryClient = useQueryClient()
   const store = useCartStore()
 
   const addMutation = useMutation({
     mutationFn: async ({ product, quantity }: { product: Product; quantity: number }) => {
-      store.addItem(product, quantity) // optimistic update
-      if (user) {
-        await cartService.addToCart(Number(user.id), [
-          { id: Number(product.id), quantity },
-        ])
+      if (isAuthenticated) {
+        await store.addItem(product.id, quantity)
+      } else {
+        // Fallback to local if not logged in?
+        // For now, we require login to use cart (as per backend)
+        throw new Error('Please log in to add items to cart')
       }
       return product
     },
     onSuccess: (product) => {
       toast.success(`${product.name} added to cart`)
-      if (user) queryClient.invalidateQueries({ queryKey: QUERY_KEYS.CART(Number(user.id)) })
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.CART })
     },
-    onError: () => {
-      toast.error('Could not add item to cart. Please try again.')
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || 'Could not add item to cart. Please try again.')
     },
   })
 
   const removeMutation = useMutation({
     mutationFn: async (productId: string) => {
-      store.removeItem(productId)
-      // Server sync: get current cart and replace without that product
+      if (isAuthenticated) {
+        await store.removeItem(productId)
+      }
+    },
+    onSuccess: () => {
+      toast.success('Item removed from cart')
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.CART })
     },
   })
 
   const updateQuantityMutation = useMutation({
     mutationFn: async ({ productId, quantity }: { productId: string; quantity: number }) => {
-      store.updateQuantity(productId, quantity)
+      if (isAuthenticated) {
+        if (quantity <= 0) {
+          await store.removeItem(productId)
+        } else {
+          await store.updateQuantity(productId, quantity)
+        }
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.CART })
     },
   })
 
   const clearMutation = useMutation({
     mutationFn: async () => {
-      store.clearCart()
+      if (isAuthenticated) {
+        await store.clearCart()
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.CART })
     },
   })
 
@@ -69,6 +92,7 @@ export function useCart() {
     totalItems: store.totalItems(),
     totalPrice: store.totalPrice(),
     isEmpty: store.items.length === 0,
+    isLoading: store.isLoading,
 
     addItem: (product: Product, quantity = 1) =>
       addMutation.mutateAsync({ product, quantity }),
