@@ -1,19 +1,29 @@
 import { useState } from 'react'
-import { Bell, Search, ChevronDown } from 'lucide-react'
+import { Bell, Search, ChevronDown, Menu } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 
 interface Props {
   title?: string
+  onMobileMenuToggle?: () => void
 }
 
-export default function AdminHeader({ title }: Props) {
+export default function AdminHeader({ title, onMobileMenuToggle }: Props) {
   const { user, logout } = useAuth()
   const [dropdownOpen, setDropdownOpen] = useState(false)
 
   return (
-    <header className="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-6 shrink-0 gap-4">
-      {/* Left: page title */}
-      <h1 className="text-base font-semibold text-gray-800 truncate">{title ?? 'Admin Panel'}</h1>
+    <header className="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4 md:px-6 shrink-0 gap-4">
+      {/* Left: hamburger (mobile) + page title */}
+      <div className="flex items-center gap-3 min-w-0">
+        <button
+          onClick={onMobileMenuToggle}
+          className="md:hidden p-1.5 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+          aria-label="Open menu"
+        >
+          <Menu size={20} />
+        </button>
+        <h1 className="text-base font-semibold text-gray-800 truncate">{title ?? 'Admin Panel'}</h1>
+      </div>
 
       {/* Right actions */}
       <div className="flex items-center gap-2 shrink-0">
@@ -41,7 +51,10 @@ export default function AdminHeader({ title }: Props) {
             <span className="hidden sm:block text-sm font-medium text-gray-700 max-w-[120px] truncate">
               {user?.name}
             </span>
-            <ChevronDown size={14} className={`text-gray-400 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown
+              size={14}
+              className={`text-gray-400 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`}
+            />
           </button>
 
           {dropdownOpen && (

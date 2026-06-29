@@ -14,16 +14,25 @@ const PAGE_TITLES: Record<string, string> = {
 
 export default function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
   const { pathname } = useLocation()
 
   const title = PAGE_TITLES[pathname] ?? 'Admin'
 
   return (
     <div className="min-h-screen flex bg-gray-50">
-      <AdminSidebar collapsed={collapsed} onToggle={() => setCollapsed((v) => !v)} />
+      <AdminSidebar
+        collapsed={collapsed}
+        onToggle={() => setCollapsed((v) => !v)}
+        mobileOpen={mobileOpen}
+        onMobileClose={() => setMobileOpen(false)}
+      />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <AdminHeader title={title} />
-        <main className="flex-1 overflow-y-auto p-6">
+        <AdminHeader
+          title={title}
+          onMobileMenuToggle={() => setMobileOpen((v) => !v)}
+        />
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
           <Outlet />
         </main>
       </div>

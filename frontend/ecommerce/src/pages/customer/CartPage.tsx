@@ -3,11 +3,9 @@ import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, ChevronRight, Tag } from 
 import { useCart } from '@/hooks/useCart'
 import { ROUTES } from '@/constants/routes'
 import { formatCurrency } from '@/utils/formatters'
+import { FREE_SHIPPING_THRESHOLD, SHIPPING_COST } from '@/constants/shipping'
 import Button from '@/components/ui/Button'
 import type { CartItem } from '@/types'
-
-const FREE_SHIPPING_THRESHOLD = 50
-const SHIPPING_COST = 9.99
 
 // ── Line item row ─────────────────────────────────────────────────────────────
 function CartItemRow({

@@ -5,6 +5,7 @@ import { queryClient } from '@/app/queryClient'
 import { AuthProvider } from '@/context/AuthContext'
 import { ErrorBoundary } from '@/components/common/ErrorBoundary'
 import PageLoader from '@/components/common/PageLoader'
+import ToastContainer from '@/components/ui/ToastContainer'
 import { router } from '@/routes'
 
 export default function App() {
@@ -15,6 +16,7 @@ export default function App() {
           <Suspense fallback={<PageLoader />}>
             <RouterProvider router={router} />
           </Suspense>
+          <ToastContainer />
         </AuthProvider>
       </QueryClientProvider>
     </ErrorBoundary>

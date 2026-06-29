@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { cartService } from '@/services/cartService'
 import { useCartStore } from '@/store/cartStore'
+import { toast } from '@/store/toastStore'
 import { QUERY_KEYS } from '@/constants/queryKeys'
 import { useAuth } from '@/context/AuthContext'
 import type { Product } from '@/types'
@@ -33,9 +34,14 @@ export function useCart() {
           { id: Number(product.id), quantity },
         ])
       }
+      return product
     },
-    onSuccess: () => {
+    onSuccess: (product) => {
+      toast.success(`${product.name} added to cart`)
       if (user) queryClient.invalidateQueries({ queryKey: QUERY_KEYS.CART(Number(user.id)) })
+    },
+    onError: () => {
+      toast.error('Could not add item to cart. Please try again.')
     },
   })
 

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ChevronDown, ChevronUp, Package } from 'lucide-react'
 import { useAllOrders, useUpdateOrderStatus } from '@/hooks/useOrders'
 import { formatCurrency, formatDate, formatOrderStatus } from '@/utils/formatters'
+import { toast } from '@/store/toastStore'
 import Badge from '@/components/ui/Badge'
 import type { Order, OrderStatus } from '@/types'
 
@@ -163,7 +164,13 @@ export default function AdminOrdersPage() {
 
   function handleStatusChange(order: Order, status: OrderStatus) {
     if (status === order.status) return
-    updateStatus({ id: order.id, status })
+    updateStatus(
+      { id: order.id, status },
+      {
+        onSuccess: () => toast.success(`Order status updated to ${formatOrderStatus(status)}`),
+        onError: () => toast.error('Failed to update order status'),
+      },
+    )
   }
 
   return (

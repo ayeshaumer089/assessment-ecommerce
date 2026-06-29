@@ -11,12 +11,10 @@ import { useCart } from '@/hooks/useCart'
 import { useCreateOrder } from '@/hooks/useOrders'
 import { ROUTES } from '@/constants/routes'
 import { formatCurrency } from '@/utils/formatters'
+import { FREE_SHIPPING_THRESHOLD, SHIPPING_COST } from '@/constants/shipping'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import type { CartItem } from '@/types'
-
-const FREE_SHIPPING_THRESHOLD = 50
-const SHIPPING_COST = 9.99
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
 const shippingSchema = z.object({

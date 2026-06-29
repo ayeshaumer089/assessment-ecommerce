@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from '@/store/toastStore'
 import { QUERY_KEYS } from '@/constants/queryKeys'
 import type { PaginatedResult, Product } from '@/types'
 
@@ -54,14 +55,12 @@ export function useCreateProduct() {
         { queryKey: QUERY_KEYS.PRODUCTS() },
         (old) => {
           if (!old) return old
-          return {
-            ...old,
-            items: [newProduct, ...old.items],
-            total: old.total + 1,
-          }
+          return { ...old, items: [newProduct, ...old.items], total: old.total + 1 }
         },
       )
+      toast.success(`"${newProduct.name}" created successfully`)
     },
+    onError: () => toast.error('Failed to create product'),
   })
 }
 
@@ -80,14 +79,13 @@ export function useUpdateProduct() {
         { queryKey: QUERY_KEYS.PRODUCTS() },
         (old) => {
           if (!old) return old
-          return {
-            ...old,
-            items: old.items.map((p) => (p.id === updated.id ? updated : p)),
-          }
+          return { ...old, items: old.items.map((p) => (p.id === updated.id ? updated : p)) }
         },
       )
       queryClient.setQueryData<Product>(QUERY_KEYS.PRODUCT(updated.id), updated)
+      toast.success(`"${updated.name}" updated successfully`)
     },
+    onError: () => toast.error('Failed to update product'),
   })
 }
 
@@ -109,6 +107,8 @@ export function useDeleteProduct() {
         },
       )
       queryClient.removeQueries({ queryKey: QUERY_KEYS.PRODUCT(deletedId) })
+      toast.success('Product deleted')
     },
+    onError: () => toast.error('Failed to delete product'),
   })
 }
