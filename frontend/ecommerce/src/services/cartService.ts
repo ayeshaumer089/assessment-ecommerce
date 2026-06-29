@@ -2,12 +2,15 @@ import api from './axiosInstance'
 import type { Cart, CartItem } from '@/types'
 
 function mapCartItem(data: any): CartItem {
+  const productData = typeof data.productId === 'object' ? data.productId : {}
+  const productId = productData._id?.toString() || productData.id || data.productId?.toString() || ''
   return {
     ...data,
-    productId: data.productId._id || data.productId.id || data.productId,
+    productId,
     product: {
-      ...data.productId,
-      id: data.productId._id || data.productId.id,
+      ...productData,
+      id: productId,
+      _id: productId,
     },
   }
 }
@@ -15,7 +18,7 @@ function mapCartItem(data: any): CartItem {
 function mapCart(data: any): Cart {
   return {
     ...data,
-    items: data.items.map(mapCartItem),
+    items: (data.items || []).map(mapCartItem),
   }
 }
 

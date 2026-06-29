@@ -2,19 +2,8 @@ import api from './axiosInstance'
 import type { PaginatedResult, Product, ProductFilters } from '@/types'
 
 function mapProduct(data: any): Product {
-  // _id from lean() can be an ObjectId or Buffer object — convert to hex string
-  const rawId = data._id
-  let id: string
-  if (typeof rawId === 'string') {
-    id = rawId
-  } else if (rawId && typeof rawId.toHexString === 'function') {
-    id = rawId.toHexString()
-  } else if (rawId && rawId.buffer) {
-    // Buffer serialized as { type: 'Buffer', data: [...] }
-    id = Buffer.from(rawId.buffer.data ?? rawId.buffer).toString('hex')
-  } else {
-    id = String(rawId)
-  }
+  // _id should now be a string from the backend, but handle ObjectId just in case
+  const id = data.id || (data._id ? data._id.toString() : '')
 
   return {
     ...data,

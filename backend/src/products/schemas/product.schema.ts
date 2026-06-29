@@ -63,19 +63,18 @@ ProductSchema.set('toJSON', {
   virtuals: true,
   transform: (_doc, ret: any) => {
     ret.id = ret._id?.toString();
+    ret._id = ret._id?.toString();
     delete ret.__v;
     return ret;
   },
 });
 
-// Ensure lean() queries also get string IDs by using a post-find hook
-ProductSchema.post(['find', 'findOne'], function(docs) {
-  if (!docs) return;
-  const items = Array.isArray(docs) ? docs : [docs];
-  for (const doc of items) {
-    if (doc && doc._id && typeof doc._id !== 'string') {
-      doc.id = doc._id.toString();
-      doc._id = doc._id.toString();
-    }
-  }
+ProductSchema.set('toObject', {
+  virtuals: true,
+  transform: (_doc, ret: any) => {
+    ret.id = ret._id?.toString();
+    ret._id = ret._id?.toString();
+    delete ret.__v;
+    return ret;
+  },
 });

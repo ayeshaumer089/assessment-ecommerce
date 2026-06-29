@@ -59,7 +59,7 @@ export class ProductsService {
       : { [sortBy]: sortOrder as SortOrder };
 
     const [data, total] = await Promise.all([
-      this.productModel.find(filter).sort(sort).skip(skip).limit(limit).lean().exec(),
+      this.productModel.find(filter).sort(sort).skip(skip).limit(limit).exec(),
       this.productModel.countDocuments(filter).exec(),
     ]);
 
@@ -79,7 +79,7 @@ export class ProductsService {
   }
 
   async findOne(id: string): Promise<any> {
-    const product = await this.productModel.findById(id).lean().exec();
+    const product = await this.productModel.findById(id).exec();
     if (!product) throw new NotFoundException('Product not found');
     return product;
   }
@@ -103,7 +103,6 @@ export class ProductsService {
       .find({ stock: { $gt: 0 } })
       .sort({ createdAt: -1 })
       .limit(n)
-      .lean()
       .exec();
   }
 
