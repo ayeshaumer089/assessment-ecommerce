@@ -10,6 +10,7 @@ import { CartModule } from './cart/cart.module';
 import { OrdersModule } from './orders/orders.module';
 import { AdminModule } from './admin/admin.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { SeedModule } from './seed/seed.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import appConfig from './config/app.config';
@@ -37,6 +38,7 @@ import jwtConfig from './config/jwt.config';
     OrdersModule,
     AdminModule,
     DashboardModule,
+    SeedModule,
   ],
   providers: [
     // ── Global guards (evaluated in order) ───────────────────────────────────
