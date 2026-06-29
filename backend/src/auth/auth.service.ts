@@ -1,30 +1,72 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { UsersService } from '../users/users.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { JwtPayload } from './interfaces/jwt-payload.interface';
+import { UserDocument } from '../users/schemas/user.schema';
 
 @Injectable()
 export class AuthService {
-  async register(_dto: RegisterDto): Promise<any> {
-    // TODO: check email uniqueness, create user, sign tokens
-    throw new Error('Not implemented');
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly jwtService: JwtService,
+  ) {}
+
+  async register(dto: RegisterDto) {
+    const existing = await this.usersService.findByEmail(dto.email);
+    if (existing) {
+      throw new ConflictException('An account with this email already exists');
+    }
+
+    const user = await this.usersService.create({
+      name: dto.name,
+      email: dto.email,
+      password: dto.password,
+    });
+
+    return {
+      user: user.toJSON(),
+      accessToken: this.signToken(user),
+    };
   }
 
-  async login(_dto: LoginDto): Promise<any> {
-    // TODO: find user by email, compare password, sign tokens
-    throw new Error('Not implemented');
+  async login(dto: LoginDto) {
+    const user = await this.usersService.findByEmail(dto.email);
+    if (!user) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
+
+    const passwordValid = await user.comparePassword(dto.password);
+    if (!passwordValid) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
+
+    return {
+      user: user.toJSON(),
+      accessToken: this.signToken(user),
+    };
   }
 
-  async logout(_userId: string): Promise<void> {
-    // TODO: invalidate refresh token
+  async getProfile(userId: string) {
+    const user = await this.usersService.findById(userId);
+    return user.toJSON();
   }
 
-  async refreshTokens(_userId: string, _refreshToken: string): Promise<any> {
-    // TODO: validate refresh token, issue new token pair
-    throw new Error('Not implemented');
+  async logout(_userId: string): Promise<{ message: string }> {
+    return { message: 'Logged out successfully' };
   }
 
-  async getProfile(_userId: string): Promise<any> {
-    // TODO: return authenticated user profile
-    throw new Error('Not implemented');
+  private signToken(user: UserDocument): string {
+    const payload: JwtPayload = {
+      sub: (user._id as object).toString(),
+      email: user.email,
+      role: user.role,
+    };
+    return this.jwtService.sign(payload);
   }
 }

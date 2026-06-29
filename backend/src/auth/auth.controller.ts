@@ -19,8 +19,8 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Public()
-  @Post('register')
-  register(@Body() dto: RegisterDto) {
+  @Post('signup')
+  signup(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }
 
@@ -42,12 +42,5 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   logout(@CurrentUser() user: any) {
     return this.authService.logout(user.id);
-  }
-
-  @Public()
-  @Post('refresh')
-  @HttpCode(HttpStatus.OK)
-  refresh(@Body('refreshToken') refreshToken: string, @CurrentUser() user: any) {
-    return this.authService.refreshTokens(user?.id, refreshToken);
   }
 }

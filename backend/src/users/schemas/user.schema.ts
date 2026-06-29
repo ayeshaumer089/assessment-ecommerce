@@ -3,7 +3,9 @@ import { HydratedDocument } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import { Role } from '../enums/role.enum';
 
-export type UserDocument = HydratedDocument<User>;
+export type UserDocument = HydratedDocument<User> & {
+  comparePassword(candidate: string): Promise<boolean>;
+};
 
 @Schema({ timestamps: true, collection: 'users' })
 export class User {
