@@ -5,12 +5,12 @@ import { LoginDto } from './dto/login.dto';
 @Injectable()
 export class AuthService {
   async register(_dto: RegisterDto): Promise<any> {
-    // TODO: check email/username uniqueness, create user, return tokens
+    // TODO: check email uniqueness, create user, sign tokens
     throw new Error('Not implemented');
   }
 
   async login(_dto: LoginDto): Promise<any> {
-    // TODO: validate credentials, return access + refresh tokens
+    // TODO: find user by email, compare password, sign tokens
     throw new Error('Not implemented');
   }
 
@@ -19,12 +19,12 @@ export class AuthService {
   }
 
   async refreshTokens(_userId: string, _refreshToken: string): Promise<any> {
-    // TODO: validate refresh token, return new token pair
+    // TODO: validate refresh token, issue new token pair
     throw new Error('Not implemented');
   }
 
   async getProfile(_userId: string): Promise<any> {
-    // TODO: return authenticated user's profile
+    // TODO: return authenticated user profile
     throw new Error('Not implemented');
   }
 }

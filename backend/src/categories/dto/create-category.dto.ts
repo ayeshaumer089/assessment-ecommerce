@@ -2,36 +2,25 @@ import {
   IsString,
   IsNotEmpty,
   IsOptional,
-  IsMongoId,
-  IsNumber,
   MaxLength,
-  Min,
+  MinLength,
 } from 'class-validator';
-import { Transform, Type } from 'class-transformer';
+import { Transform } from 'class-transformer';
 
 export class CreateCategoryDto {
   @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
+  @IsNotEmpty({ message: 'Category name is required' })
+  @MinLength(2, { message: 'Category name must be at least 2 characters' })
+  @MaxLength(100, { message: 'Category name cannot exceed 100 characters' })
   @Transform(({ value }) => value?.trim())
   name: string;
 
   @IsString()
   @IsOptional()
-  @MaxLength(500)
+  @MaxLength(500, { message: 'Description cannot exceed 500 characters' })
   description?: string;
 
   @IsString()
   @IsOptional()
   image?: string;
-
-  @IsMongoId({ message: 'parent must be a valid MongoDB ObjectId' })
-  @IsOptional()
-  parent?: string;
-
-  @IsNumber()
-  @Min(0)
-  @IsOptional()
-  @Type(() => Number)
-  sortOrder?: number;
 }

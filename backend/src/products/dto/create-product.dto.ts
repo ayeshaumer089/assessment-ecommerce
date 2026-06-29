@@ -1,74 +1,46 @@
 import {
   IsString,
   IsNumber,
-  IsOptional,
-  IsMongoId,
-  IsArray,
-  IsBoolean,
-  Min,
-  Max,
-  MaxLength,
   IsNotEmpty,
+  MinLength,
+  MaxLength,
   IsUrl,
+  IsPositive,
+  Min,
+  IsOptional,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 
 export class CreateProductDto {
   @IsString()
-  @IsNotEmpty()
-  @MaxLength(200)
+  @IsNotEmpty({ message: 'Product name is required' })
+  @MinLength(2, { message: 'Product name must be at least 2 characters' })
+  @MaxLength(200, { message: 'Product name cannot exceed 200 characters' })
   @Transform(({ value }) => value?.trim())
   name: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'Description is required' })
+  @MinLength(10, { message: 'Description must be at least 10 characters' })
   description: string;
 
-  @IsNumber()
-  @Min(0)
+  @IsNumber({}, { message: 'Price must be a number' })
+  @IsPositive({ message: 'Price must be greater than 0' })
   @Type(() => Number)
   price: number;
 
-  @IsNumber()
-  @Min(0)
-  @Max(100)
-  @IsOptional()
-  @Type(() => Number)
-  discountPercentage?: number;
+  @IsString()
+  @IsNotEmpty({ message: 'Image URL is required' })
+  image: string;
 
-  @IsNumber()
-  @Min(0)
-  @Type(() => Number)
-  stock: number;
-
-  @IsMongoId({ message: 'category must be a valid MongoDB ObjectId' })
+  @IsString()
+  @IsNotEmpty({ message: 'Category is required' })
+  @Transform(({ value }) => value?.toLowerCase().trim())
   category: string;
 
-  @IsString()
+  @IsNumber({}, { message: 'Stock must be a number' })
+  @Min(0, { message: 'Stock cannot be negative' })
+  @Type(() => Number)
   @IsOptional()
-  @MaxLength(100)
-  @Transform(({ value }) => value?.trim())
-  brand?: string;
-
-  @IsString()
-  @IsOptional()
-  sku?: string;
-
-  @IsArray()
-  @IsString({ each: true })
-  @IsOptional()
-  tags?: string[];
-
-  @IsString()
-  @IsNotEmpty()
-  thumbnail: string;
-
-  @IsArray()
-  @IsString({ each: true })
-  @IsOptional()
-  images?: string[];
-
-  @IsBoolean()
-  @IsOptional()
-  isFeatured?: boolean;
+  stock?: number;
 }

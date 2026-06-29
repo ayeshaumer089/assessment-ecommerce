@@ -1,33 +1,27 @@
-import {
-  IsOptional,
-  IsString,
-  IsNumber,
-  Min,
-  IsMongoId,
-  IsEnum,
-  IsBoolean,
-} from 'class-validator';
+import { IsOptional, IsString, IsNumber, Min, IsEnum } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
-
-export enum SortField {
-  PRICE = 'price',
-  NAME = 'name',
-  RATING = 'rating',
-  CREATED_AT = 'createdAt',
-}
 
 export enum SortOrder {
   ASC = 'asc',
   DESC = 'desc',
 }
 
+export enum ProductSortField {
+  PRICE = 'price',
+  NAME = 'name',
+  CREATED_AT = 'createdAt',
+  STOCK = 'stock',
+}
+
 export class QueryProductDto {
   @IsOptional()
   @IsString()
+  @Transform(({ value }) => value?.trim())
   search?: string;
 
   @IsOptional()
-  @IsMongoId()
+  @IsString()
+  @Transform(({ value }) => value?.toLowerCase().trim())
   category?: string;
 
   @IsOptional()
@@ -43,17 +37,8 @@ export class QueryProductDto {
   maxPrice?: number;
 
   @IsOptional()
-  @IsString()
-  brand?: string;
-
-  @IsOptional()
-  @IsBoolean()
-  @Transform(({ value }) => value === 'true' || value === true)
-  isFeatured?: boolean;
-
-  @IsOptional()
-  @IsEnum(SortField)
-  sortBy?: SortField = SortField.CREATED_AT;
+  @IsEnum(ProductSortField)
+  sortBy?: ProductSortField = ProductSortField.CREATED_AT;
 
   @IsOptional()
   @IsEnum(SortOrder)
