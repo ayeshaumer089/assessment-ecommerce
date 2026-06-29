@@ -1,0 +1,40 @@
+import type { Product } from '@/types'
+
+export const mockProducts: Product[] = [
+  {
+    id: '1',
+    name: 'Wireless Headphones Pro',
+    description: 'Premium noise-cancelling wireless headphones with 30h battery life.',
+    price: 299.99,
+    stock: 42,
+    category: 'Electronics',
+    image: 'https://placehold.co/400x300/e2e8f0/64748b?text=Headphones',
+    rating: 4.7,
+    reviewCount: 128,
+    createdAt: '2025-01-15T10:00:00Z',
+  },
+  {
+    id: '2',
+    name: 'Mechanical Keyboard TKL',
+    description: 'Compact tenkeyless mechanical keyboard with RGB and hot-swap switches.',
+    price: 149.99,
+    stock: 18,
+    category: 'Electronics',
+    image: 'https://placehold.co/400x300/e2e8f0/64748b?text=Keyboard',
+    rating: 4.5,
+    reviewCount: 64,
+    createdAt: '2025-02-01T10:00:00Z',
+  },
+  {
+    id: '3',
+    name: 'Ergonomic Office Chair',
+    description: 'Lumbar-support mesh chair designed for all-day comfort.',
+    price: 499.99,
+    stock: 7,
+    category: 'Furniture',
+    image: 'https://placehold.co/400x300/e2e8f0/64748b?text=Chair',
+    rating: 4.8,
+    reviewCount: 312,
+    createdAt: '2025-01-20T10:00:00Z',
+  },
+]

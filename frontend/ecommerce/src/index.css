@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: #111827;
+  background: #f9fafb;
+}
+
+/* Modal entrance animation */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slide-in-from-bottom-4 {
+  from { transform: translateY(1rem); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.animate-in {
+  animation-fill-mode: both;
+}
+.fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+.slide-in-from-bottom-4 {
+  animation: slide-in-from-bottom-4 0.2s ease-out;
+}
+.duration-200 {
+  animation-duration: 0.2s;
+}
+
+/* Bounce animation delay utilities for Loader dots */
+[style*="animation-delay"] {
+  animation-duration: 0.7s;
+}
