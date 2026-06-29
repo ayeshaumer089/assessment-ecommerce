@@ -1,3 +1,11 @@
+import { setDefaultResultOrder } from 'node:dns';
+import { promises as dns } from 'node:dns';
+
+// Force Node.js to use Google DNS (8.8.8.8) to resolve MongoDB Atlas SRV records
+// This fixes ECONNREFUSED errors caused by local DNS not resolving Atlas hostnames
+dns.setServers(['8.8.8.8', '8.8.4.4']);
+setDefaultResultOrder('ipv4first');
+
 import { NestFactory, Reflector } from '@nestjs/core';
 import { ValidationPipe, ClassSerializerInterceptor } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
