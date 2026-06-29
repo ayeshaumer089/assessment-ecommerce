@@ -9,7 +9,7 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('dj_token')
+    const token = localStorage.getItem('token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -22,8 +22,8 @@ api.interceptors.response.use(
   (res) => res,
   (err: AxiosError) => {
     if (err.response?.status === 401) {
-      localStorage.removeItem('dj_token')
-      localStorage.removeItem('dj_user')
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
       window.dispatchEvent(new Event('auth:logout'))
     }
     return Promise.reject(err)

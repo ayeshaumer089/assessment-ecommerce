@@ -1,69 +1,64 @@
 import api from './axiosInstance'
-import type { DJAuthResponse, DJUser } from '@/types/dummyjson'
 import type { User } from '@/types'
-import { mapAuthUser, mapDJUser } from '@/utils/mappers'
 
-const TOKEN_KEY = 'dj_token'
-const USER_KEY = 'dj_user'
+const TOKEN_KEY = 'token'
+const USER_KEY = 'user'
 
 export interface LoginCredentials {
-  username: string
+  email?: string
+  username?: string
   password: string
 }
 
 export interface SignupPayload {
-  firstName: string
-  lastName: string
+  name?: string
+  firstName?: string
+  lastName?: string
   email: string
-  username: string
+  username?: string
   password: string
+}
+
+interface AuthResponse {
+  user: User
+  accessToken: string
 }
 
 export const authService = {
   async login(credentials: LoginCredentials): Promise<{ user: User; token: string }> {
-    const { data } = await api.post<DJAuthResponse>('/auth/login', {
-      ...credentials,
-      expiresInMins: 60,
-    })
-    // Fetch full profile to get the role field (DJAuthResponse omits it)
-    let user: User
-    try {
-      const { data: profile } = await api.get<DJUser>(`/users/${data.id}`)
-      user = mapDJUser(profile)
-    } catch {
-      user = mapAuthUser(data)
-    }
-    localStorage.setItem(TOKEN_KEY, data.token)
+    const loginData = credentials.email 
+      ? { email: credentials.email, password: credentials.password }
+      : { email: credentials.username, password: credentials.password }
+    const { data } = await api.post<AuthResponse>('/auth/login', loginData)
+    const user = { ...data.user, id: data.user._id || data.user.id }
+    localStorage.setItem(TOKEN_KEY, data.accessToken)
     localStorage.setItem(USER_KEY, JSON.stringify(user))
-    return { user, token: data.token }
+    return { user, token: data.accessToken }
   },
 
-  // DummyJSON doesn't persist new users — we mock the response client-side
   async signup(payload: SignupPayload): Promise<{ user: User; token: string }> {
-    const { data } = await api.post<{ id: number } & SignupPayload>('/users/add', payload)
-    const user: User = {
-      id: String(data.id),
-      name: `${payload.firstName} ${payload.lastName}`,
-      email: payload.email,
-      username: payload.username,
-      role: 'customer',
-      createdAt: new Date().toISOString(),
-    }
-    const mockToken = `mock-token-${data.id}-${Date.now()}`
-    localStorage.setItem(TOKEN_KEY, mockToken)
+    const name = payload.name || `${payload.firstName} ${payload.lastName}`
+    const signupData = { name, email: payload.email, password: payload.password }
+    const { data } = await api.post<AuthResponse>('/auth/signup', signupData)
+    const user = { ...data.user, id: data.user._id || data.user.id }
+    localStorage.setItem(TOKEN_KEY, data.accessToken)
     localStorage.setItem(USER_KEY, JSON.stringify(user))
-    return { user, token: mockToken }
+    return { user, token: data.accessToken }
   },
 
   async getMe(): Promise<User> {
-    const { data } = await api.get<DJAuthResponse>('/auth/me')
-    // Preserve role set during login (DJAuthResponse doesn't include role)
-    const stored = authService.getStoredUser()
-    const base   = mapAuthUser(data)
-    return stored ? { ...base, role: stored.role } : base
+    const { data } = await api.get<User>('/auth/me')
+    const user = { ...data, id: data._id || data.id }
+    localStorage.setItem(USER_KEY, JSON.stringify(user))
+    return user
   },
 
-  logout(): void {
+  async logout(): Promise<void> {
+    await api.post('/auth/logout')
+    authService.clearStorage()
+  },
+
+  clearStorage(): void {
     localStorage.removeItem(TOKEN_KEY)
     localStorage.removeItem(USER_KEY)
   },

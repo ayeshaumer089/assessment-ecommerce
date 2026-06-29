@@ -1,60 +1,93 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
-import type { CartItem, Product } from '@/types'
+import type { Cart, CartItem, Product } from '@/types'
+import { cartService } from '@/services/cartService'
 
 interface CartState {
+  cart: Cart | null
   items: CartItem[]
-  addItem: (product: Product, quantity?: number) => void
-  removeItem: (productId: string) => void
-  updateQuantity: (productId: string, quantity: number) => void
-  clearCart: () => void
+  isLoading: boolean
+  fetchCart: () => Promise<void>
+  addItem: (productOrId: Product | string, quantity?: number) => Promise<void>
+  removeItem: (productId: string) => Promise<void>
+  updateQuantity: (productId: string, quantity: number) => Promise<void>
+  clearCart: () => Promise<void>
   totalItems: () => number
   totalPrice: () => number
 }
 
-export const useCartStore = create<CartState>()(
-  persist(
-    (set, get) => ({
-      items: [],
+export const useCartStore = create<CartState>()((set, get) => ({
+  cart: null,
+  items: [],
+  isLoading: false,
 
-      addItem: (product, quantity = 1) => {
-        set((state) => {
-          const existing = state.items.find((i) => i.product.id === product.id)
-          if (existing) {
-            return {
-              items: state.items.map((i) =>
-                i.product.id === product.id
-                  ? { ...i, quantity: i.quantity + quantity }
-                  : i,
-              ),
-            }
-          }
-          return { items: [...state.items, { product, quantity }] }
-        })
+  fetchCart: async () => {
+    set({ isLoading: true })
+    try {
+      const cart = await cartService.getCart()
+      const items = cart.items.map((item) => ({
+        ...item,
+        product: {
+          ...item.product,
+          id: (item.product.id || item.product._id) as string,
+        },
+      }))
+      set({ cart, items, isLoading: false })
+    } catch {
+      set({ cart: null, items: [], isLoading: false })
+    }
+  },
+
+  addItem: async (productOrId, quantity = 1) => {
+    const productId = typeof productOrId === 'string' ? productOrId : productOrId.id
+    const cart = await cartService.addItem(productId, quantity)
+    const items = cart.items.map((item) => ({
+      ...item,
+      product: {
+        ...item.product,
+        id: (item.product.id || item.product._id) as string,
       },
+    }))
+    set({ cart, items })
+  },
 
-      removeItem: (productId) => {
-        set((state) => ({ items: state.items.filter((i) => i.product.id !== productId) }))
+  removeItem: async (productId) => {
+    const cart = await cartService.removeItem(productId)
+    const items = cart.items.map((item) => ({
+      ...item,
+      product: {
+        ...item.product,
+        id: (item.product.id || item.product._id) as string,
       },
+    }))
+    set({ cart, items })
+  },
 
-      updateQuantity: (productId, quantity) => {
-        if (quantity <= 0) {
-          get().removeItem(productId)
-          return
-        }
-        set((state) => ({
-          items: state.items.map((i) =>
-            i.product.id === productId ? { ...i, quantity } : i,
-          ),
-        }))
+  updateQuantity: async (productId, quantity) => {
+    if (quantity <= 0) {
+      await get().removeItem(productId)
+      return
+    }
+    const cart = await cartService.updateItem(productId, quantity)
+    const items = cart.items.map((item) => ({
+      ...item,
+      product: {
+        ...item.product,
+        id: (item.product.id || item.product._id) as string,
       },
+    }))
+    set({ cart, items })
+  },
 
-      clearCart: () => set({ items: [] }),
+  clearCart: async () => {
+    await cartService.clearCart()
+    set({ cart: null, items: [] })
+  },
 
-      totalItems: () => get().items.reduce((acc, i) => acc + i.quantity, 0),
+  totalItems: () => {
+    return get().items.reduce((acc, i) => acc + i.quantity, 0)
+  },
 
-      totalPrice: () => get().items.reduce((acc, i) => acc + i.product.price * i.quantity, 0),
-    }),
-    { name: 'cart-storage' },
-  ),
-)
+  totalPrice: () => {
+    return get().items.reduce((acc, i) => acc + ((i.product?.price || i.price) || 0) * i.quantity, 0)
+  },
+}))

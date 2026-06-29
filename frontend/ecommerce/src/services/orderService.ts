@@ -1,79 +1,44 @@
-import type { CreateOrderPayload, Order, OrderStatus } from '@/types'
-import { mockOrders } from '@/mock/orders'
+import api from './axiosInstance'
+import type { Order, OrderStatus, PaymentStatus } from '@/types'
 
-const STORAGE_KEY = 'shopzone_orders'
-
-function loadOrders(): Order[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) return JSON.parse(raw) as Order[]
-  } catch {
-    /* ignore */
+function mapOrder(data: any): Order {
+  return {
+    ...data,
+    id: data._id || data.id,
   }
-  // Seed with mock data on first load
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(mockOrders))
-  return mockOrders
-}
-
-function saveOrders(orders: Order[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(orders))
-}
-
-function generateId(): string {
-  return `ORD-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`
 }
 
 export const orderService = {
-  async getOrders(userId?: string): Promise<Order[]> {
-    const orders = loadOrders()
-    return userId ? orders.filter((o) => o.userId === userId) : orders
+  async getMyOrders(): Promise<Order[]> {
+    const { data } = await api.get<Order[]>('/orders')
+    return data.map(mapOrder)
   },
 
-  async getOrderById(id: string): Promise<Order | null> {
-    const orders = loadOrders()
-    return orders.find((o) => o.id === id) ?? null
+  async getOrderById(id: string): Promise<Order> {
+    const { data } = await api.get<Order>(`/orders/${id}`)
+    return mapOrder(data)
   },
 
-  async createOrder(userId: string, payload: CreateOrderPayload): Promise<Order> {
-    const subtotal = payload.items.reduce(
-      (sum, i) => sum + i.product.price * i.quantity,
-      0,
-    )
-    const discountedTotal = payload.items.reduce(
-      (sum, i) => sum + i.product.discountedPrice * i.quantity,
-      0,
-    )
-    const now = new Date().toISOString()
-
-    const order: Order = {
-      id: generateId(),
-      userId,
-      items: payload.items,
-      subtotal: parseFloat(subtotal.toFixed(2)),
-      discountedTotal: parseFloat(discountedTotal.toFixed(2)),
-      total: parseFloat(discountedTotal.toFixed(2)),
-      status: 'pending',
-      shippingAddress: payload.shippingAddress,
-      paymentMethod: payload.paymentMethod,
-      createdAt: now,
-      updatedAt: now,
-    }
-
-    const orders = loadOrders()
-    saveOrders([order, ...orders])
-    return order
-  },
-
-  async updateOrderStatus(id: string, status: OrderStatus): Promise<Order> {
-    const orders = loadOrders()
-    const idx = orders.findIndex((o) => o.id === id)
-    if (idx === -1) throw new Error(`Order ${id} not found`)
-    orders[idx] = { ...orders[idx], status, updatedAt: new Date().toISOString() }
-    saveOrders(orders)
-    return orders[idx]
+  async checkout(): Promise<{ order: Order; payment: any }> {
+    const { data } = await api.post<{ order: Order; payment: any }>('/orders/create', {})
+    return { order: mapOrder(data.order), payment: data.payment }
   },
 
   async cancelOrder(id: string): Promise<Order> {
-    return orderService.updateOrderStatus(id, 'cancelled')
+    const { data } = await api.patch<Order>(`/orders/${id}/cancel`)
+    return mapOrder(data)
+  },
+
+  // Admin functions
+  async getAllOrders(): Promise<{ data: Order[]; total: number }> {
+    const { data } = await api.get<{ data: Order[]; total: number }>('/orders/all')
+    return { data: data.data.map(mapOrder), total: data.total }
+  },
+
+  async updateOrderStatus(id: string, status: OrderStatus, paymentStatus?: PaymentStatus): Promise<Order> {
+    const payload: any = { status }
+    if (paymentStatus) payload.paymentStatus = paymentStatus
+    const { data } = await api.patch<Order>(`/orders/${id}/status`, payload)
+    return mapOrder(data)
   },
 }

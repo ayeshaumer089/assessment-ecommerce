@@ -1,8 +1,9 @@
 export interface User {
   id: string
+  _id?: string
   name: string
   email: string
-  username: string
+  username?: string
   role: 'customer' | 'admin'
   avatar?: string
   createdAt: string
@@ -17,6 +18,7 @@ export interface Review {
 
 export interface Product {
   id: string
+  _id?: string
   name: string
   description: string
   price: number
@@ -40,24 +42,46 @@ export interface Product {
 }
 
 export interface CartItem {
+  _id?: string
+  productId?: string
   product: Product
   quantity: number
+  price?: number
+}
+
+export interface Cart {
+  _id?: string
+  userId: string
+  items: CartItem[]
 }
 
 export type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled'
 
+export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded'
+
+export interface OrderItem {
+  productId?: string
+  name?: string
+  quantity: number
+  price?: number
+  product?: Product
+}
+
 export interface Order {
   id: string
+  _id?: string
   userId: string
-  items: CartItem[]
-  subtotal: number
-  discountedTotal: number
-  total: number
+  items: OrderItem[]
+  totalAmount?: number
+  total?: number
+  subtotal?: number
+  discountedTotal?: number
   status: OrderStatus
-  shippingAddress: Address
-  paymentMethod: string
+  paymentStatus?: PaymentStatus
+  shippingAddress?: Address
+  paymentMethod?: string
   createdAt: string
-  updatedAt: string
+  updatedAt?: string
 }
 
 export interface Address {
@@ -75,11 +99,20 @@ export interface ApiError {
 }
 
 export interface PaginatedResult<T> {
-  items: T[]
-  total: number
-  page: number
-  limit: number
-  totalPages: number
+  data: T[]
+  items?: T[]
+  meta?: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+    hasNextPage: boolean
+    hasPrevPage: boolean
+  }
+  total?: number
+  page?: number
+  limit?: number
+  totalPages?: number
 }
 
 export interface ProductFilters {
@@ -87,7 +120,10 @@ export interface ProductFilters {
   limit?: number
   category?: string
   search?: string
-  sortBy?: 'price' | 'rating' | 'name'
+  minPrice?: number
+  maxPrice?: number
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
   order?: 'asc' | 'desc'
 }
 
@@ -95,4 +131,46 @@ export interface CreateOrderPayload {
   items: CartItem[]
   shippingAddress: Address
   paymentMethod: string
+}
+
+// Dashboard Types
+export interface DashboardOverview {
+  totalUsers: number
+  totalProducts: number
+  outOfStock: number
+  totalOrders: number
+  totalRevenue: number
+  thisMonth: { orders: number; revenue: number }
+  lastMonth: { orders: number; revenue: number }
+  growth: { orders: number | null; revenue: number | null }
+}
+
+export interface SalesDataPoint {
+  date: string
+  revenue: number
+  orders: number
+}
+
+export interface TopProduct {
+  productId: string
+  name: string
+  totalQuantity: number
+  totalRevenue: number
+  orderCount: number
+}
+
+export interface StatusBreakdown {
+  status: string
+  count: number
+  percentage: number
+}
+
+export interface DashboardStats {
+  overview: DashboardOverview
+  charts: {
+    sales: SalesDataPoint[]
+    orderStatus: StatusBreakdown[]
+    topProducts: TopProduct[]
+  }
+  recentOrders: Order[]
 }
