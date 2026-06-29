@@ -10,7 +10,7 @@ interface AdminProductPayload {
   price: number
   category: string
   stock: number
-  image: string
+  image?: string
   brand?: string
 }
 

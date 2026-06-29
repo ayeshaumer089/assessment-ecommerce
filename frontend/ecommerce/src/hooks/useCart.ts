@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { cartService } from '@/services/cartService'
 import { useCartStore } from '@/store/cartStore'
 import { toast } from '@/store/toastStore'
 import { QUERY_KEYS } from '@/constants/queryKeys'
