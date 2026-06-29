@@ -44,6 +44,15 @@ export class ProductsController {
     return this.productsService.findOne(id.toString());
   }
 
+  @Public()
+  @Get(':id/recommendations')
+  getRecommendations(
+    @Param('id', ParseObjectIdPipe) id: Types.ObjectId,
+    @Query('limit') limit?: number,
+  ) {
+    return this.productsService.getRecommendations(id.toString(), limit);
+  }
+
   // ── Admin-only ──────────────────────────────────────────────────────────────
 
   @Post()

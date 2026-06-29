@@ -5,12 +5,14 @@ import { Product, ProductDocument } from './schemas/product.schema';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { QueryProductDto, ProductSortField } from './dto/query-product.dto';
+import { RecommendationService } from './recommendation.service';
 
 @Injectable()
 export class ProductsService {
   constructor(
     @InjectModel(Product.name)
     private readonly productModel: Model<ProductDocument>,
+    private readonly recommendationService: RecommendationService,
   ) {}
 
   async create(dto: CreateProductDto): Promise<ProductDocument> {
@@ -102,5 +104,13 @@ export class ProductsService {
       .sort({ createdAt: -1 })
       .limit(n)
       .exec();
+  }
+
+  async getRecommendations(
+    id: string,
+    limit?: number | string,
+  ): Promise<ProductDocument[]> {
+    const source = await this.findOne(id);
+    return this.recommendationService.getRecommendations(source, Number(limit) || 6);
   }
 }
