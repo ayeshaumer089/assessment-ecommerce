@@ -14,6 +14,21 @@ export interface ApiResponse<T> {
   meta?: Record<string, unknown>;
 }
 
+/** Recursively serialize Mongoose documents to plain objects via toJSON() */
+function serialize(value: any): any {
+  if (value === null || value === undefined) return value;
+  if (typeof value?.toJSON === 'function') return serialize(value.toJSON());
+  if (Array.isArray(value)) return value.map(serialize);
+  if (value && typeof value === 'object' && !Buffer.isBuffer(value)) {
+    const out: any = {};
+    for (const key of Object.keys(value)) {
+      out[key] = serialize(value[key]);
+    }
+    return out;
+  }
+  return value;
+}
+
 @Injectable()
 export class TransformInterceptor<T>
   implements NestInterceptor<T, ApiResponse<T>>
@@ -24,17 +39,18 @@ export class TransformInterceptor<T>
   ): Observable<ApiResponse<T>> {
     return next.handle().pipe(
       map((payload) => {
-        if (payload && typeof payload === 'object' && 'data' in payload) {
+        const serialized = serialize(payload);
+        if (serialized && typeof serialized === 'object' && 'data' in serialized) {
           return {
             success: true,
-            data: payload.data,
-            message: payload.message,
-            meta: payload.meta,
+            data: serialized.data,
+            message: serialized.message,
+            meta: serialized.meta,
           };
         }
         return {
           success: true,
-          data: payload,
+          data: serialized,
         };
       }),
     );
