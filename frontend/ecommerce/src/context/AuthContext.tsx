@@ -1,54 +1,74 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 import type { User } from '@/types'
-import { authService } from '@/services/authService'
+import { authService, type LoginCredentials, type SignupPayload } from '@/services/authService'
 
 interface AuthContextValue {
   user: User | null
   token: string | null
   isAuthenticated: boolean
   isLoading: boolean
-  login: (email: string, password: string) => Promise<void>
+  login: (credentials: LoginCredentials) => Promise<void>
+  signup: (payload: SignupPayload) => Promise<void>
   logout: () => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'))
-  const [isLoading, setIsLoading] = useState(true)
+  const [user, setUser] = useState<User | null>(() => authService.getStoredUser())
+  const [token, setToken] = useState<string | null>(() => authService.getStoredToken())
+  const [isLoading, setIsLoading] = useState(!!authService.getStoredToken())
 
+  // Re-validate token on mount if one exists
   useEffect(() => {
     if (!token) {
       setIsLoading(false)
       return
     }
-    authService.getMe()
-      .then((res) => setUser(res.data.data))
+    authService
+      .getMe()
+      .then((freshUser) => setUser(freshUser))
       .catch(() => {
-        localStorage.removeItem('token')
+        authService.logout()
         setToken(null)
+        setUser(null)
       })
       .finally(() => setIsLoading(false))
-  }, [token])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // only on mount
 
-  const login = async (email: string, password: string) => {
-    const res = await authService.login({ email, password })
-    const { user: authUser, token: authToken } = res.data.data
-    localStorage.setItem('token', authToken)
+  // Listen for 401 events from axios interceptor
+  useEffect(() => {
+    const handler = () => {
+      setToken(null)
+      setUser(null)
+    }
+    window.addEventListener('auth:logout', handler)
+    return () => window.removeEventListener('auth:logout', handler)
+  }, [])
+
+  const login = async (credentials: LoginCredentials) => {
+    const { user: authUser, token: authToken } = await authService.login(credentials)
+    setToken(authToken)
+    setUser(authUser)
+  }
+
+  const signup = async (payload: SignupPayload) => {
+    const { user: authUser, token: authToken } = await authService.signup(payload)
     setToken(authToken)
     setUser(authUser)
   }
 
   const logout = () => {
-    authService.logout().catch(() => {})
-    localStorage.removeItem('token')
+    authService.logout()
     setToken(null)
     setUser(null)
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, isAuthenticated: !!user, isLoading, login, logout }}>
+    <AuthContext.Provider
+      value={{ user, token, isAuthenticated: !!user, isLoading, login, signup, logout }}
+    >
       {children}
     </AuthContext.Provider>
   )

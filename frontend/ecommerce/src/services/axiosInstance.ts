@@ -1,34 +1,33 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { ENV } from '@/constants/env'
 
-const axiosInstance = axios.create({
+const api = axios.create({
   baseURL: ENV.API_BASE_URL,
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  timeout: 15000,
+  headers: { 'Content-Type': 'application/json' },
 })
 
-axiosInstance.interceptors.request.use(
+api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('token')
+    const token = localStorage.getItem('dj_token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
     return config
   },
-  (error: AxiosError) => Promise.reject(error),
+  (err: AxiosError) => Promise.reject(err),
 )
 
-axiosInstance.interceptors.response.use(
-  (response) => response,
-  (error: AxiosError) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token')
-      window.location.href = '/login'
+api.interceptors.response.use(
+  (res) => res,
+  (err: AxiosError) => {
+    if (err.response?.status === 401) {
+      localStorage.removeItem('dj_token')
+      localStorage.removeItem('dj_user')
+      window.dispatchEvent(new Event('auth:logout'))
     }
-    return Promise.reject(error)
+    return Promise.reject(err)
   },
 )
 
-export default axiosInstance
+export default api

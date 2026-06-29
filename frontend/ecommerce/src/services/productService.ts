@@ -1,28 +1,59 @@
-import axiosInstance from './axiosInstance'
-import type { ApiResponse, PaginatedResponse, Product } from '@/types'
-
-interface ProductFilters {
-  page?: number
-  limit?: number
-  category?: string
-  search?: string
-  minPrice?: number
-  maxPrice?: number
-}
+import api from './axiosInstance'
+import type { DJCategory, DJProduct, DJProductsResponse } from '@/types/dummyjson'
+import type { PaginatedResult, Product, ProductFilters } from '@/types'
+import { mapProduct } from '@/utils/mappers'
 
 export const productService = {
-  getAll: (params?: ProductFilters) =>
-    axiosInstance.get<PaginatedResponse<Product>>('/products', { params }),
+  async getProducts(filters: ProductFilters = {}): Promise<PaginatedResult<Product>> {
+    const { page = 1, limit = 20, category, sortBy, order = 'asc' } = filters
 
-  getById: (id: string) =>
-    axiosInstance.get<ApiResponse<Product>>(`/products/${id}`),
+    const skip = (page - 1) * limit
+    const params: Record<string, string | number> = { limit, skip }
 
-  create: (data: Omit<Product, 'id' | 'createdAt' | 'rating' | 'reviewCount'>) =>
-    axiosInstance.post<ApiResponse<Product>>('/products', data),
+    if (sortBy) {
+      params.sortBy = sortBy === 'name' ? 'title' : sortBy
+      params.order = order
+    }
 
-  update: (id: string, data: Partial<Product>) =>
-    axiosInstance.put<ApiResponse<Product>>(`/products/${id}`, data),
+    const url = category ? `/products/category/${category}` : '/products'
+    const { data } = await api.get<DJProductsResponse>(url, { params })
 
-  delete: (id: string) =>
-    axiosInstance.delete<ApiResponse<null>>(`/products/${id}`),
+    return {
+      items: data.products.map(mapProduct),
+      total: data.total,
+      page,
+      limit,
+      totalPages: Math.ceil(data.total / limit),
+    }
+  },
+
+  async getProductById(id: string): Promise<Product> {
+    const { data } = await api.get<DJProduct>(`/products/${id}`)
+    return mapProduct(data)
+  },
+
+  async searchProducts(query: string, limit = 20): Promise<PaginatedResult<Product>> {
+    const { data } = await api.get<DJProductsResponse>('/products/search', {
+      params: { q: query, limit },
+    })
+    return {
+      items: data.products.map(mapProduct),
+      total: data.total,
+      page: 1,
+      limit,
+      totalPages: Math.ceil(data.total / limit),
+    }
+  },
+
+  async getCategories(): Promise<DJCategory[]> {
+    const { data } = await api.get<DJCategory[]>('/products/categories')
+    return data
+  },
+
+  async getProductsByCategory(
+    category: string,
+    filters: Omit<ProductFilters, 'category' | 'search'> = {},
+  ): Promise<PaginatedResult<Product>> {
+    return productService.getProducts({ ...filters, category })
+  },
 }
