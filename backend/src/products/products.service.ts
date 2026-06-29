@@ -22,7 +22,7 @@ export class ProductsService {
 
   async findAll(
     query: QueryProductDto,
-  ): Promise<{ data: ProductDocument[]; meta: Record<string, unknown> }> {
+  ): Promise<{ data: any[]; meta: Record<string, unknown> }> {
     const {
       search,
       category,
@@ -59,7 +59,7 @@ export class ProductsService {
       : { [sortBy]: sortOrder as SortOrder };
 
     const [data, total] = await Promise.all([
-      this.productModel.find(filter).sort(sort).skip(skip).limit(limit).exec(),
+      this.productModel.find(filter).sort(sort).skip(skip).limit(limit).lean().exec(),
       this.productModel.countDocuments(filter).exec(),
     ]);
 
@@ -78,8 +78,8 @@ export class ProductsService {
     };
   }
 
-  async findOne(id: string): Promise<ProductDocument> {
-    const product = await this.productModel.findById(id).exec();
+  async findOne(id: string): Promise<any> {
+    const product = await this.productModel.findById(id).lean().exec();
     if (!product) throw new NotFoundException('Product not found');
     return product;
   }
@@ -97,12 +97,13 @@ export class ProductsService {
     if (!result) throw new NotFoundException('Product not found');
   }
 
-  async getFeatured(limit?: number | string): Promise<ProductDocument[]> {
+  async getFeatured(limit?: number | string): Promise<any[]> {
     const n = Number(limit) || 8;
     return this.productModel
       .find({ stock: { $gt: 0 } })
       .sort({ createdAt: -1 })
       .limit(n)
+      .lean()
       .exec();
   }
 

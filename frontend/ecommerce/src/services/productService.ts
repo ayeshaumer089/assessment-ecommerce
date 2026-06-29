@@ -2,9 +2,24 @@ import api from './axiosInstance'
 import type { PaginatedResult, Product, ProductFilters } from '@/types'
 
 function mapProduct(data: any): Product {
+  // _id from lean() can be an ObjectId or Buffer object — convert to hex string
+  const rawId = data._id
+  let id: string
+  if (typeof rawId === 'string') {
+    id = rawId
+  } else if (rawId && typeof rawId.toHexString === 'function') {
+    id = rawId.toHexString()
+  } else if (rawId && rawId.buffer) {
+    // Buffer serialized as { type: 'Buffer', data: [...] }
+    id = Buffer.from(rawId.buffer.data ?? rawId.buffer).toString('hex')
+  } else {
+    id = String(rawId)
+  }
+
   return {
     ...data,
-    id: data._id || data.id,
+    id,
+    _id: id,
     discountPercentage: data.discountPercentage || 0,
     discountedPrice: data.discountedPrice || data.price,
     brand: data.brand || '',
@@ -27,12 +42,15 @@ export const productService = {
     if (params.sortBy) {
       if (!params.sortOrder) params.sortOrder = params.order || 'desc'
     }
-    const { data } = await api.get<PaginatedResult<Product>>('/products', { params })
-    const items = (data.data || data.items || []).map(mapProduct)
-    const total = data.meta?.total || data.total || items.length
-    const page = data.meta?.page || data.page || 1
-    const limit = data.meta?.limit || data.limit || 20
-    const totalPages = data.meta?.totalPages || data.totalPages || Math.ceil(total / limit)
+    const { data } = await api.get<any>('/products', { params })
+    // Interceptor preserves { data: [...], meta: {...} } from the envelope
+    const rawItems: any[] = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : [])
+    const meta = data.meta
+    const items = rawItems.map(mapProduct)
+    const total = meta?.total ?? items.length
+    const page = meta?.page ?? 1
+    const limit = meta?.limit ?? 20
+    const totalPages = meta?.totalPages ?? Math.ceil(total / limit)
     return {
       data: items,
       items,
@@ -40,7 +58,7 @@ export const productService = {
       page,
       limit,
       totalPages,
-      meta: data.meta,
+      meta,
     }
   },
 

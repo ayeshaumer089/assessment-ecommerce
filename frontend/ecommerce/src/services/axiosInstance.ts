@@ -19,7 +19,25 @@ api.interceptors.request.use(
 )
 
 api.interceptors.response.use(
-  (res) => res,
+  (res) => {
+    // Unwrap the backend's { success, data, meta } envelope.
+    // Preserve meta by merging it into data when data is an array.
+    if (
+      res.data &&
+      typeof res.data === 'object' &&
+      'success' in res.data &&
+      'data' in res.data
+    ) {
+      const { data, meta, ...rest } = res.data
+      if (meta !== undefined) {
+        // Keep meta accessible: return { data: [...], meta: {...} }
+        res.data = { data, meta, ...rest }
+      } else {
+        res.data = data
+      }
+    }
+    return res
+  },
   (err: AxiosError) => {
     if (err.response?.status === 401) {
       localStorage.removeItem('token')
