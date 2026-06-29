@@ -5,12 +5,12 @@ import {
   Patch,
   Param,
   Delete,
-  UseGuards,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../common/guards/roles.guard';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ParseObjectIdPipe } from '../common/pipes/parse-object-id.pipe';
@@ -18,9 +18,10 @@ import { Role } from './enums/role.enum';
 import { Types } from 'mongoose';
 
 @Controller('users')
-@UseGuards(JwtAuthGuard, RolesGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
+
+  // ── Current user (customer & admin) ────────────────────────────────────────
 
   @Get('me')
   getMe(@CurrentUser() user: any) {
@@ -28,7 +29,7 @@ export class UsersController {
   }
 
   @Patch('me')
-  updateMe(@CurrentUser() user: any, @Body() dto: UpdateUserDto) {
+  updateMe(@CurrentUser() user: any, @Body() dto: UpdateProfileDto) {
     return this.usersService.update(user.id, dto);
   }
 
@@ -57,6 +58,7 @@ export class UsersController {
 
   @Delete(':id')
   @Roles(Role.ADMIN)
+  @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id', ParseObjectIdPipe) id: Types.ObjectId) {
     return this.usersService.remove(id.toString());
   }
