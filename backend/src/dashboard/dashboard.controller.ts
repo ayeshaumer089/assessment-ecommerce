@@ -1,15 +1,24 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { DashboardService } from './dashboard.service';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../common/guards/roles.guard';
+import { DashboardQueryDto } from './dto/dashboard-query.dto';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '../users/enums/role.enum';
 
+// Admin-only: global RolesGuard enforces this on every route.
 @Controller('dashboard')
-@UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.ADMIN)
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
+
+  // ── Consolidated endpoint for dashboard page ──────────────────────────────────
+  // Returns all chart datasets in one call to minimise round-trips.
+
+  @Get('stats')
+  getStats(@Query() query: DashboardQueryDto) {
+    return this.dashboardService.getStats(query);
+  }
+
+  // ── Granular endpoints for individual chart widgets ───────────────────────────
 
   @Get('overview')
   getOverview() {
