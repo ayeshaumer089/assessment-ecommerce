@@ -7,8 +7,9 @@ import ProtectedRoute from '@/components/common/ProtectedRoute'
 import PrivateRoute from '@/components/common/PrivateRoute'
 
 // Auth pages — full screen, no layout wrapper
-const LoginPage    = lazy(() => import('@/pages/customer/auth/LoginPage'))
-const SignupPage   = lazy(() => import('@/pages/customer/auth/SignupPage'))
+const LoginPage      = lazy(() => import('@/pages/customer/auth/LoginPage'))
+const SignupPage     = lazy(() => import('@/pages/customer/auth/SignupPage'))
+const AdminLoginPage = lazy(() => import('@/pages/admin/AdminLoginPage'))
 
 // Public pages
 const HomePage          = lazy(() => import('@/pages/HomePage'))
@@ -32,8 +33,9 @@ const AdminAnalyticsPage = lazy(() => import('@/pages/admin/AnalyticsPage'))
 
 export const router = createBrowserRouter([
   // ── Full-screen auth pages (no navbar / footer) ─────────────────
-  { path: ROUTES.LOGIN,    element: <LoginPage />  },
-  { path: ROUTES.REGISTER, element: <SignupPage /> },
+  { path: ROUTES.LOGIN,        element: <LoginPage />      },
+  { path: ROUTES.REGISTER,     element: <SignupPage />     },
+  { path: ROUTES.ADMIN.LOGIN,  element: <AdminLoginPage /> },
 
   // ── Customer-facing layout ──────────────────────────────────────
   {

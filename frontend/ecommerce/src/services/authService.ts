@@ -1,7 +1,7 @@
 import api from './axiosInstance'
-import type { DJAuthResponse } from '@/types/dummyjson'
+import type { DJAuthResponse, DJUser } from '@/types/dummyjson'
 import type { User } from '@/types'
-import { mapAuthUser } from '@/utils/mappers'
+import { mapAuthUser, mapDJUser } from '@/utils/mappers'
 
 const TOKEN_KEY = 'dj_token'
 const USER_KEY = 'dj_user'
@@ -25,7 +25,14 @@ export const authService = {
       ...credentials,
       expiresInMins: 60,
     })
-    const user = mapAuthUser(data)
+    // Fetch full profile to get the role field (DJAuthResponse omits it)
+    let user: User
+    try {
+      const { data: profile } = await api.get<DJUser>(`/users/${data.id}`)
+      user = mapDJUser(profile)
+    } catch {
+      user = mapAuthUser(data)
+    }
     localStorage.setItem(TOKEN_KEY, data.token)
     localStorage.setItem(USER_KEY, JSON.stringify(user))
     return { user, token: data.token }
@@ -50,7 +57,10 @@ export const authService = {
 
   async getMe(): Promise<User> {
     const { data } = await api.get<DJAuthResponse>('/auth/me')
-    return mapAuthUser(data)
+    // Preserve role set during login (DJAuthResponse doesn't include role)
+    const stored = authService.getStoredUser()
+    const base   = mapAuthUser(data)
+    return stored ? { ...base, role: stored.role } : base
   },
 
   logout(): void {

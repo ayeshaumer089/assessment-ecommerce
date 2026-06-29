@@ -14,7 +14,8 @@ export default function ProtectedRoute({ requiredRole }: Props) {
   if (isLoading) return <PageLoader />
 
   if (!isAuthenticated) {
-    return <Navigate to={ROUTES.LOGIN} state={{ from: location }} replace />
+    const loginPath = requiredRole === 'admin' ? ROUTES.ADMIN.LOGIN : ROUTES.LOGIN
+    return <Navigate to={loginPath} state={{ from: location }} replace />
   }
 
   if (requiredRole && user?.role !== requiredRole) {
