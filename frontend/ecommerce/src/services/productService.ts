@@ -84,7 +84,7 @@ export const productService = {
   },
 
   // Admin functions
-  async createProduct(product: Omit<Product, 'id' | '_id' | 'createdAt'>): Promise<Product> {
+  async createProduct(product: Partial<Omit<Product, 'id' | '_id' | 'createdAt'>> & { name: string; description: string; price: number; category: string; stock: number }): Promise<Product> {
     const { data } = await api.post<Product>('/products', product)
     return mapProduct(data)
   },
