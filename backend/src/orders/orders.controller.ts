@@ -5,15 +5,12 @@ import {
   Body,
   Patch,
   Param,
-  UseGuards,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
 import { OrdersService } from './orders.service';
-import { CreateOrderDto } from './dto/create-order.dto';
+import { CheckoutDto } from './dto/checkout.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ParseObjectIdPipe } from '../common/pipes/parse-object-id.pipe';
@@ -21,19 +18,27 @@ import { Role } from '../users/enums/role.enum';
 import { Types } from 'mongoose';
 
 @Controller('orders')
-@UseGuards(JwtAuthGuard, RolesGuard)
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
+
+  // ── Customer routes ──────────────────────────────────────────────────────────
 
   @Get()
   findMyOrders(@CurrentUser() user: any) {
     return this.ordersService.findByUser(user.id);
   }
 
-  @Post()
+  @Post('create')
   @HttpCode(HttpStatus.CREATED)
-  create(@CurrentUser() user: any, @Body() dto: CreateOrderDto) {
-    return this.ordersService.create(user.id, dto);
+  checkout(@CurrentUser() user: any, @Body() dto: CheckoutDto) {
+    return this.ordersService.checkout(user.id, dto);
+  }
+
+  // Static 'all' must be declared before :id so NestJS matches it first
+  @Get('all')
+  @Roles(Role.ADMIN)
+  findAll() {
+    return this.ordersService.findAll();
   }
 
   @Get(':id')
@@ -53,15 +58,9 @@ export class OrdersController {
     return this.ordersService.cancel(id.toString(), user.id);
   }
 
-  // ── Admin-only ──────────────────────────────────────────────────────────────
+  // ── Admin routes ──────────────────────────────────────────────────────────────
 
-  @Get('admin/all')
-  @Roles(Role.ADMIN)
-  findAll() {
-    return this.ordersService.findAll();
-  }
-
-  @Patch('admin/:id/status')
+  @Patch(':id/status')
   @Roles(Role.ADMIN)
   updateStatus(
     @Param('id', ParseObjectIdPipe) id: Types.ObjectId,
