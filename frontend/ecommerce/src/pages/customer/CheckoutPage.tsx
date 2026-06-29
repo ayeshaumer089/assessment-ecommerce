@@ -8,7 +8,7 @@ import {
   Lock, Truck, Tag, ArrowLeft, ChevronRight, Eye, EyeOff,
 } from 'lucide-react'
 import { useCart } from '@/hooks/useCart'
-import { useCreateOrder } from '@/hooks/useOrders'
+import { useCheckout } from '@/hooks/useOrders'
 import { ROUTES } from '@/constants/routes'
 import { formatCurrency } from '@/utils/formatters'
 import { FREE_SHIPPING_THRESHOLD, SHIPPING_COST } from '@/constants/shipping'
@@ -525,7 +525,7 @@ function ReviewStep({
 export default function CheckoutPage() {
   const navigate    = useNavigate()
   const { items, isEmpty, clearCart } = useCart()
-  const createOrder = useCreateOrder()
+  const checkout = useCheckout()
 
   const [step,         setStep]         = useState<Step>('shipping')
   const [shippingData, setShippingData] = useState<ShippingData | null>(null)
@@ -551,24 +551,12 @@ export default function CheckoutPage() {
   }
 
   async function handlePlaceOrder() {
-    if (!shippingData || !paymentData) return
     setOrderError('')
 
     try {
-      const order = await createOrder.mutateAsync({
-        items,
-        shippingAddress: {
-          street:  shippingData.street + (shippingData.apt ? `, ${shippingData.apt}` : ''),
-          city:    shippingData.city,
-          state:   shippingData.state,
-          zipCode: shippingData.zipCode,
-          country: shippingData.country,
-        },
-        paymentMethod: `Card ending in ${paymentData.cardNumber.replace(/\s/g, '').slice(-4)}`,
-      })
-
+      const result = await checkout.mutateAsync()
       clearCart()
-      navigate(ROUTES.CUSTOMER.CHECKOUT_SUCCESS, { state: { order }, replace: true })
+      navigate(ROUTES.CUSTOMER.CHECKOUT_SUCCESS, { state: { order: result.order }, replace: true })
     } catch {
       setOrderError('Something went wrong placing your order. Please try again.')
     }
@@ -618,7 +606,7 @@ export default function CheckoutPage() {
               paymentData={paymentData}
               onBack={() => setStep('payment')}
               onPlaceOrder={handlePlaceOrder}
-              isPlacing={createOrder.isPending}
+              isPlacing={checkout.isPending}
               error={orderError}
             />
           )}

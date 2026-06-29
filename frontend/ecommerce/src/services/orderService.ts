@@ -1,5 +1,5 @@
 import api from './axiosInstance'
-import type { Order, OrderStatus, PaymentStatus } from '@/types'
+import type { Order, OrderStatus, PaymentStatus, Product } from '@/types'
 
 function mapOrder(data: any): Order {
   const items = (data.items || []).map((item: any) => ({
