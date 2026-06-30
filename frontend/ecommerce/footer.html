@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShopZone Footer</title>
+<style>
+  :root{
+    --bg-0:#0a0e1a;
+    --bg-1:#0f1525;
+    --indigo:#5b4ff5;
+    --indigo-2:#7a6ffb;
+    --border:#1f2740;
+    --text:#eef0fa;
+    --muted:#8891ac;
+    --muted-2:#5f6889;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background:#f6f7fb;
+  }
+
+  footer{
+    background:
+      radial-gradient(700px 300px at 10% 0%, #16204a 0%, transparent 60%),
+      var(--bg-0);
+    color:var(--muted);
+    padding:48px 32px 0;
+  }
+
+  .footer-grid{
+    max-width:1180px;
+    margin:0 auto;
+    display:grid;
+    grid-template-columns:1.4fr 1fr 1fr 1fr;
+    gap:32px;
+    padding-bottom:36px;
+  }
+
+  .brand-col .brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:14px;
+  }
+  .brand-col .logo{
+    width:32px;height:32px;
+    border-radius:9px;
+    background:linear-gradient(145deg, var(--indigo-2), #4338d6);
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;
+    font-weight:700;
+    font-size:14px;
+    box-shadow:0 6px 16px -6px rgba(91,79,245,.55);
+  }
+  .brand-col .name{
+    font-weight:700;
+    font-size:17px;
+    color:var(--text);
+  }
+  .brand-col p{
+    font-size:13.5px;
+    line-height:1.6;
+    color:var(--muted);
+    max-width:260px;
+    margin:0 0 16px;
+  }
+
+  .social-row{
+    display:flex;
+    gap:10px;
+  }
+  .social-row a{
+    width:32px;height:32px;
+    border-radius:8px;
+    border:1px solid var(--border);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:var(--muted);
+    text-decoration:none;
+    transition:border-color .15s ease, color .15s ease, transform .15s ease;
+  }
+  .social-row a:hover{
+    border-color:var(--indigo-2);
+    color:var(--indigo-2);
+    transform:translateY(-2px);
+  }
+
+  .col h4{
+    font-size:11.5px;
+    font-weight:700;
+    letter-spacing:.08em;
+    color:#cfd3ec;
+    margin:0 0 16px;
+  }
+  .col ul{
+    list-style:none;
+    margin:0; padding:0;
+    display:flex;
+    flex-direction:column;
+    gap:11px;
+  }
+  .col a{
+    text-decoration:none;
+    font-size:13.5px;
+    color:var(--muted);
+    transition:color .15s ease, padding-left .15s ease;
+  }
+  .col a:hover{
+    color:var(--indigo-2);
+    padding-left:3px;
+  }
+
+  .footer-bottom{
+    max-width:1180px;
+    margin:0 auto;
+    border-top:1px solid var(--border);
+    padding:18px 0;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .footer-bottom p{
+    margin:0;
+    font-size:12.5px;
+    color:var(--muted-2);
+  }
+  .footer-bottom .made-with{
+    font-size:12.5px;
+    color:var(--muted-2);
+  }
+  .footer-bottom .made-with span{
+    color:var(--indigo-2);
+  }
+
+  @media (max-width:780px){
+    .footer-grid{
+      grid-template-columns:1fr 1fr;
+    }
+    .brand-col{grid-column:1 / -1;}
+  }
+  @media (max-width:480px){
+    .footer-grid{grid-template-columns:1fr;}
+    .footer-bottom{flex-direction:column; align-items:flex-start;}
+  }
+</style>
+</head>
+<body>
+
+<footer>
+  <div class="footer-grid">
+    <div class="brand-col">
+      <div class="brand">
+        <div class="logo">S</div>
+        <span class="name">ShopZone</span>
+      </div>
+      <p>Quality products, delivered fast. Your trusted online shopping destination.</p>
+      <div class="social-row">
+        <a href="#" aria-label="Twitter">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M23 3a10.9 10.9 0 01-3.14.86 4.48 4.48 0 001.98-2.48 9.1 9.1 0 01-2.88 1.1 4.52 4.52 0 00-7.7 4.13A12.84 12.84 0 011.64 2.16a4.52 4.52 0 001.4 6.04 4.48 4.48 0 01-2.05-.57v.06a4.52 4.52 0 003.63 4.43 4.5 4.5 0 01-2.04.08 4.52 4.52 0 004.22 3.14A9.06 9.06 0 010 18.58a12.8 12.8 0 006.92 2.03c8.3 0 12.85-6.88 12.85-12.85 0-.2 0-.39-.01-.58A9.18 9.18 0 0023 3z"></path></svg>
+        </a>
+        <a href="#" aria-label="Instagram">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"></rect><circle cx="12" cy="12" r="4"></circle><circle cx="17.5" cy="6.5" r="1"></circle></svg>
+        </a>
+        <a href="#" aria-label="Facebook">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M14 9V6.5a1.5 1.5 0 011.5-1.5H17V2h-2.5A4.5 4.5 0 0010 6.5V9H7v3h3v10h4V12h2.8l.7-3H14z"></path></svg>
+        </a>
+      </div>
+    </div>
+
+    <div class="col">
+      <h4>SHOP</h4>
+      <ul>
+        <li><a href="#">All Products</a></li>
+        <li><a href="#">My Orders</a></li>
+        <li><a href="#">Cart</a></li>
+      </ul>
+    </div>
+
+    <div class="col">
+      <h4>ACCOUNT</h4>
+      <ul>
+        <li><a href="#">Profile</a></li>
+        <li><a href="#">Sign In</a></li>
+        <li><a href="#">Register</a></li>
+      </ul>
+    </div>
+
+    <div class="col">
+      <h4>COMPANY</h4>
+      <ul>
+        <li><a href="#">About</a></li>
+        <li><a href="#">Contact</a></li>
+        <li><a href="#">Privacy Policy</a></li>
+        <li><a href="#">Terms of Service</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer-bottom">
+    <p>&copy; 2026 ShopZone. All rights reserved.</p>
+    <p class="made-with">Made with <span>React + Vite</span></p>
+  </div>
+</footer>
+
+</body>
+</html>

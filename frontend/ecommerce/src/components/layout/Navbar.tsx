@@ -11,6 +11,14 @@ const NAV_LINKS = [
   { label: 'Orders', to: ROUTES.CUSTOMER.ORDERS },
 ]
 
+const LOGO_STYLE: React.CSSProperties = {
+  width: '34px', height: '34px', borderRadius: '9px',
+  background: 'linear-gradient(145deg, #7a6ffb, #4338d6)',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  color: '#fff', fontWeight: 700, fontSize: '15px',
+  boxShadow: '0 6px 16px -6px rgba(91,79,245,.55)', flexShrink: 0,
+}
+
 export default function Navbar() {
   const { user, logout, isAuthenticated } = useAuth()
   const totalItems = useCartStore((s) => s.totalItems())
@@ -20,28 +28,23 @@ export default function Navbar() {
   const userMenuRef = useRef<HTMLDivElement>(null)
   const location = useLocation()
 
-  // close mobile menu on route change
   useEffect(() => { setMobileOpen(false); setUserMenuOpen(false) }, [location])
 
-  // shadow on scroll
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 8)
     window.addEventListener('scroll', handler, { passive: true })
     return () => window.removeEventListener('scroll', handler)
   }, [])
 
-  // close user dropdown on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node))
         setUserMenuOpen(false)
-      }
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  // lock body scroll when mobile menu is open
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
@@ -50,212 +53,189 @@ export default function Navbar() {
   return (
     <>
       <header
-        className={`sticky top-0 z-50 bg-white transition-shadow duration-200 ${
-          scrolled ? 'shadow-md' : 'border-b border-gray-100'
-        }`}
+        className={`sticky top-0 z-50 bg-white transition-shadow duration-200 ${scrolled ? 'shadow-md' : ''}`}
+        style={{ borderBottom: '1px solid #eef0f5' }}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <Link
-              to={ROUTES.HOME}
-              className="flex items-center gap-2 shrink-0"
-            >
-              <span className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">S</span>
-              </span>
-              <span className="text-lg font-bold text-gray-900 tracking-tight">
-                {ENV.APP_NAME}
-              </span>
+        <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '62px' }}>
+
+          {/* Logo */}
+          <Link to={ROUTES.HOME} style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none', flexShrink: 0 }}>
+            <div style={LOGO_STYLE}>S</div>
+            <span style={{ fontWeight: 700, fontSize: '18px', color: '#1a1d2b', letterSpacing: '-0.01em' }}>{ENV.APP_NAME}</span>
+          </Link>
+
+          {/* Desktop nav links */}
+          <nav className="hidden md:flex" style={{ alignItems: 'center', gap: '32px' }}>
+            {NAV_LINKS.map((link) => (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                className={({ isActive }) => `sz-nav-link${isActive ? ' active' : ''}`}
+              >
+                {link.label}
+              </NavLink>
+            ))}
+          </nav>
+
+          {/* Right actions */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+
+            {/* Cart */}
+            <Link to={ROUTES.CUSTOMER.CART} className="sz-nav-cart-btn" aria-label="Cart">
+              <ShoppingCart size={18} />
+              {totalItems > 0 && (
+                <span className="sz-nav-cart-badge">{totalItems > 99 ? '99+' : totalItems}</span>
+              )}
             </Link>
 
-            {/* Desktop nav */}
-            <nav className="hidden md:flex items-center gap-1">
-              {NAV_LINKS.map((link) => (
-                <NavLink
-                  key={link.to}
-                  to={link.to}
-                  className={({ isActive }) =>
-                    `px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      isActive
-                        ? 'text-indigo-600 bg-indigo-50'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                    }`
-                  }
+            {/* User menu (desktop) */}
+            {isAuthenticated ? (
+              <div className="hidden md:block relative" ref={userMenuRef}>
+                <button
+                  onClick={() => setUserMenuOpen((v) => !v)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px 6px 6px', borderRadius: '10px', border: '1px solid #eef0f5', background: '#fff', cursor: 'pointer', fontFamily: 'inherit', transition: 'border-color .15s ease' }}
                 >
-                  {link.label}
-                </NavLink>
-              ))}
-            </nav>
-
-            {/* Right actions */}
-            <div className="flex items-center gap-2">
-              {/* Cart */}
-              <Link
-                to={ROUTES.CUSTOMER.CART}
-                className="relative p-2 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                aria-label="Cart"
-              >
-                <ShoppingCart size={20} />
-                {totalItems > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center bg-indigo-600 text-white text-[10px] font-bold rounded-full px-1 leading-none">
-                    {totalItems > 99 ? '99+' : totalItems}
+                  <span style={{ width: '26px', height: '26px', borderRadius: '50%', background: 'linear-gradient(135deg, #7a6ffb, #4338d6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: '11px', flexShrink: 0 }}>
+                    {user?.name?.[0]?.toUpperCase() ?? 'U'}
                   </span>
-                )}
-              </Link>
+                  <span style={{ fontSize: '14px', fontWeight: 500, color: '#1a1d2b', maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {user?.name}
+                  </span>
+                  <ChevronDown size={14} style={{ color: '#5b6072', transition: 'transform .2s ease', transform: userMenuOpen ? 'rotate(180deg)' : 'none', flexShrink: 0 }} />
+                </button>
 
-              {/* User menu — desktop */}
-              {isAuthenticated ? (
-                <div className="hidden md:block relative" ref={userMenuRef}>
-                  <button
-                    onClick={() => setUserMenuOpen((v) => !v)}
-                    className="flex items-center gap-2 pl-3 pr-2 py-1.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
-                  >
-                    <span className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-semibold text-xs uppercase">
-                      {user?.name?.[0] ?? 'U'}
-                    </span>
-                    <span className="max-w-[120px] truncate">{user?.name}</span>
-                    <ChevronDown size={14} className={`text-gray-400 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                  {userMenuOpen && (
-                    <div className="absolute right-0 mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50">
-                      <div className="px-3 py-2 border-b border-gray-100 mb-1">
-                        <p className="text-xs text-gray-400">Signed in as</p>
-                        <p className="text-sm font-medium text-gray-800 truncate">{user?.email}</p>
-                      </div>
-                      <Link to={ROUTES.CUSTOMER.PROFILE} className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900">
-                        <User size={14} /> Profile
-                      </Link>
-                      <Link to={ROUTES.CUSTOMER.ORDERS} className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900">
-                        Orders
-                      </Link>
-                      {user?.role === 'admin' && (
-                        <Link to={ROUTES.ADMIN.DASHBOARD} className="flex items-center gap-2 px-3 py-2 text-sm text-indigo-600 hover:bg-indigo-50">
-                          Admin Panel
-                        </Link>
-                      )}
-                      <div className="border-t border-gray-100 mt-1 pt-1">
-                        <button
-                          onClick={logout}
-                          className="w-full text-left flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
-                        >
-                          Sign out
-                        </button>
-                      </div>
+                {userMenuOpen && (
+                  <div style={{ position: 'absolute', right: 0, marginTop: '6px', width: '200px', background: '#fff', borderRadius: '14px', boxShadow: '0 8px 30px -8px rgba(26,17,64,.2)', border: '1px solid #eef0f5', padding: '6px', zIndex: 50 }}>
+                    <div style={{ padding: '10px 12px', borderBottom: '1px solid #eef0f5', marginBottom: '4px' }}>
+                      <p style={{ margin: 0, fontSize: '11px', color: '#8891ac' }}>Signed in as</p>
+                      <p style={{ margin: '2px 0 0', fontSize: '13px', fontWeight: 600, color: '#1a1d2b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email}</p>
                     </div>
-                  )}
-                </div>
-              ) : (
-                <div className="hidden md:flex items-center gap-2">
-                  <Link
-                    to={ROUTES.LOGIN}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    Sign in
-                  </Link>
-                  <Link
-                    to={ROUTES.REGISTER}
-                    className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors"
-                  >
-                    Sign up
-                  </Link>
-                </div>
-              )}
+                    {[
+                      { to: ROUTES.CUSTOMER.PROFILE, label: 'Profile', icon: <User size={14} /> },
+                      { to: ROUTES.CUSTOMER.ORDERS, label: 'Orders', icon: null },
+                    ].map(({ to, label, icon }) => (
+                      <Link key={to} to={to} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 12px', borderRadius: '8px', fontSize: '13.5px', color: '#1a1d2b', textDecoration: 'none' }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = '#f6f7fb')}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = '')}
+                      >
+                        {icon}{label}
+                      </Link>
+                    ))}
+                    {user?.role === 'admin' && (
+                      <Link to={ROUTES.ADMIN.DASHBOARD} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 12px', borderRadius: '8px', fontSize: '13.5px', color: '#5b4ff5', fontWeight: 600, textDecoration: 'none' }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = '#f3f1ff')}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = '')}
+                      >
+                        Admin Panel
+                      </Link>
+                    )}
+                    <div style={{ borderTop: '1px solid #eef0f5', marginTop: '4px', paddingTop: '4px' }}>
+                      <button
+                        onClick={logout}
+                        style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 12px', borderRadius: '8px', fontSize: '13.5px', color: '#e53e3e', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = '#fff5f5')}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = '')}
+                      >
+                        Sign out
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="hidden md:flex" style={{ alignItems: 'center', gap: '18px' }}>
+                <Link to={ROUTES.LOGIN} className="sz-nav-signin">Sign in</Link>
+                <Link to={ROUTES.REGISTER} className="sz-nav-signup">Sign up</Link>
+              </div>
+            )}
 
-              {/* Mobile hamburger */}
-              <button
-                className="md:hidden p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-                onClick={() => setMobileOpen((v) => !v)}
-                aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
-              >
-                {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-              </button>
-            </div>
+            {/* Mobile hamburger */}
+            <button
+              className="md:hidden"
+              onClick={() => setMobileOpen((v) => !v)}
+              aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px', display: 'flex', alignItems: 'center', color: '#1a1d2b' }}
+            >
+              {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
           </div>
         </div>
+
+        {/* Accent bar */}
+        <div className="sz-accent-bar" />
       </header>
 
-      {/* Mobile menu overlay */}
+      {/* Mobile overlay */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-40 md:hidden"
+          style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }}
           onClick={() => setMobileOpen(false)}
         />
       )}
 
       {/* Mobile drawer */}
       <div
-        className={`fixed top-0 right-0 z-50 h-full w-72 bg-white shadow-2xl transform transition-transform duration-300 ease-in-out md:hidden ${
-          mobileOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
+        className="fixed top-0 right-0 z-50 h-full md:hidden"
+        style={{ width: '280px', background: '#fff', boxShadow: '-8px 0 32px rgba(0,0,0,0.12)', transform: mobileOpen ? 'translateX(0)' : 'translateX(100%)', transition: 'transform .3s ease-in-out' }}
       >
-        <div className="flex items-center justify-between px-4 h-16 border-b border-gray-100">
-          <span className="font-bold text-gray-900">{ENV.APP_NAME}</span>
-          <button
-            onClick={() => setMobileOpen(false)}
-            className="p-2 rounded-lg text-gray-500 hover:bg-gray-100"
-          >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', height: '62px', borderBottom: '1px solid #eef0f5' }}>
+          <span style={{ fontWeight: 700, color: '#1a1d2b' }}>{ENV.APP_NAME}</span>
+          <button onClick={() => setMobileOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px', display: 'flex', color: '#5b6072' }}>
             <X size={18} />
           </button>
         </div>
 
-        <div className="overflow-y-auto h-[calc(100%-4rem)] px-4 py-4 flex flex-col gap-1">
+        <div style={{ overflowY: 'auto', height: 'calc(100% - 62px)', padding: '16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
           {NAV_LINKS.map((link) => (
             <NavLink
               key={link.to}
               to={link.to}
-              className={({ isActive }) =>
-                `px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'text-indigo-600 bg-indigo-50'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`
-              }
+              style={({ isActive }) => ({
+                padding: '12px 16px', borderRadius: '10px', fontSize: '14px', fontWeight: 500,
+                color: isActive ? '#5b4ff5' : '#1a1d2b',
+                background: isActive ? '#f3f1ff' : '',
+                textDecoration: 'none', display: 'block',
+              })}
             >
               {link.label}
             </NavLink>
           ))}
 
-          <div className="border-t border-gray-100 my-3" />
+          <div style={{ borderTop: '1px solid #eef0f5', margin: '8px 0' }} />
 
           {isAuthenticated ? (
             <>
-              <div className="flex items-center gap-3 px-4 py-3 mb-1 bg-gray-50 rounded-xl">
-                <span className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-semibold uppercase">
-                  {user?.name?.[0] ?? 'U'}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: '#f6f7fb', borderRadius: '12px', marginBottom: '4px' }}>
+                <span style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, #7a6ffb, #4338d6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, flexShrink: 0 }}>
+                  {user?.name?.[0]?.toUpperCase() ?? 'U'}
                 </span>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{user?.name}</p>
-                  <p className="text-xs text-gray-400 truncate">{user?.email}</p>
+                <div style={{ minWidth: 0 }}>
+                  <p style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#1a1d2b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.name}</p>
+                  <p style={{ margin: 0, fontSize: '12px', color: '#8891ac', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email}</p>
                 </div>
               </div>
-              <Link to={ROUTES.CUSTOMER.PROFILE} className="px-4 py-3 rounded-xl text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+              <Link to={ROUTES.CUSTOMER.PROFILE} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 16px', borderRadius: '10px', fontSize: '14px', color: '#1a1d2b', textDecoration: 'none' }}>
                 <User size={15} /> Profile
               </Link>
               {user?.role === 'admin' && (
-                <Link to={ROUTES.ADMIN.DASHBOARD} className="px-4 py-3 rounded-xl text-sm text-indigo-600 hover:bg-indigo-50 font-medium">
+                <Link to={ROUTES.ADMIN.DASHBOARD} style={{ padding: '12px 16px', borderRadius: '10px', fontSize: '14px', color: '#5b4ff5', fontWeight: 600, textDecoration: 'none', display: 'block' }}>
                   Admin Panel
                 </Link>
               )}
               <button
                 onClick={logout}
-                className="mt-auto px-4 py-3 rounded-xl text-sm text-red-600 hover:bg-red-50 text-left font-medium"
+                style={{ marginTop: 'auto', padding: '12px 16px', borderRadius: '10px', fontSize: '14px', color: '#e53e3e', fontWeight: 600, textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', width: '100%' }}
               >
                 Sign out
               </button>
             </>
           ) : (
-            <div className="flex flex-col gap-2 mt-2">
-              <Link
-                to={ROUTES.LOGIN}
-                className="px-4 py-3 text-sm font-medium text-center text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50"
-              >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
+              <Link to={ROUTES.LOGIN} style={{ padding: '12px', textAlign: 'center', fontSize: '14px', fontWeight: 500, color: '#1a1d2b', border: '1px solid #eef0f5', borderRadius: '12px', textDecoration: 'none' }}>
                 Sign in
               </Link>
-              <Link
-                to={ROUTES.REGISTER}
-                className="px-4 py-3 text-sm font-medium text-center text-white bg-indigo-600 rounded-xl hover:bg-indigo-700"
-              >
+              <Link to={ROUTES.REGISTER} className="sz-nav-signup" style={{ textAlign: 'center', display: 'block', padding: '12px' }}>
                 Sign up
               </Link>
             </div>
