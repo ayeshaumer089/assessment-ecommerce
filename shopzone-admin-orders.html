@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Orders — ShopZone Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#161229;
+    --ink-soft:#4b4566;
+    --paper:#FAF9FC;
+    --card:#FFFFFF;
+    --line:#E7E3F0;
+    --violet:#5B3DF6;
+    --violet-deep:#2E1A78;
+    --violet-tint:#F1EDFC;
+    --mint:#1FAE7E;
+    --coral:#FF5A5F;
+    --radius:18px;
+    --shadow: 0 1px 2px rgba(28,15,78,0.04), 0 12px 28px -14px rgba(28,15,78,0.18);
+    --sidebar-w:248px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Inter',sans-serif;color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased;}
+  h1,h2,h3{font-family:'Fraunces',serif;margin:0;letter-spacing:-0.01em;}
+  a{color:inherit;text-decoration:none;}
+  button{font-family:inherit;}
+
+  /* ---------- SIDEBAR ---------- */
+  .sidebar{position:fixed;top:0;left:0;bottom:0;width:var(--sidebar-w);background:linear-gradient(190deg,#1C0F4E,#160B3E 60%,#120931);color:#fff;display:flex;flex-direction:column;z-index:40;}
+  .sidebar-brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;padding:24px 22px;}
+  .sidebar-brand .mark{width:32px;height:32px;border-radius:9px;background:linear-gradient(150deg,#8C72FF,var(--violet));color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-weight:600;font-size:16px;}
+  .sidebar-nav{padding:8px 14px;display:flex;flex-direction:column;gap:3px;}
+  .nav-item{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:11px;font-size:14px;font-weight:500;color:#B6ADD6;transition:background .15s ease, color .15s ease;}
+  .nav-item .ic{font-size:16px;width:18px;text-align:center;}
+  .nav-item:hover{background:rgba(255,255,255,0.06);color:#fff;}
+  .nav-item.active{background:var(--violet);color:#fff;font-weight:700;box-shadow:0 8px 18px -8px rgba(91,61,246,0.7);}
+  .sidebar-collapse{position:absolute;top:22px;right:-12px;width:24px;height:24px;border-radius:100px;background:#fff;color:var(--violet);display:flex;align-items:center;justify-content:center;font-size:12px;box-shadow:var(--shadow);cursor:pointer;}
+
+  /* ---------- MAIN ---------- */
+  .main{margin-left:var(--sidebar-w);min-height:100vh;display:flex;flex-direction:column;}
+  .topbar{position:sticky;top:0;z-index:30;background:rgba(250,249,252,0.9);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:16px 32px;}
+  .topbar .crumb{font-size:14.5px;font-weight:600;color:var(--ink-soft);}
+  .topbar .crumb b{color:var(--ink);}
+  .topbar-right{display:flex;align-items:center;gap:20px;}
+  .search-mini{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:100px;padding:8px 14px;color:#9A93AE;font-size:13.5px;min-width:190px;}
+  .bell-wrap{position:relative;color:var(--ink-soft);font-size:17px;}
+  .bell-dot{position:absolute;top:-2px;right:-2px;width:8px;height:8px;border-radius:100px;background:var(--coral);border:1.5px solid var(--paper);}
+  .user-chip{display:flex;align-items:center;gap:9px;font-weight:600;font-size:14px;}
+  .avatar{width:30px;height:30px;border-radius:100px;background:var(--violet-tint);color:var(--violet);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;}
+
+  .content{padding:30px 32px 70px;}
+  .content-head{display:flex;align-items:center;gap:12px;margin-bottom:22px;}
+  .content-head h1{font-size:30px;font-weight:600;}
+  .total-badge{background:var(--violet-tint);color:var(--violet);font-weight:700;font-size:14px;padding:5px 12px;border-radius:100px;}
+
+  /* ---------- TABS ---------- */
+  .tabs{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap;}
+  .tab{display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:100px;font-size:13.5px;font-weight:600;color:var(--ink-soft);background:var(--card);border:1px solid var(--line);cursor:pointer;transition:all .15s ease;}
+  .tab:hover{border-color:#D5CEEE;color:var(--ink);}
+  .tab.active{background:var(--violet);color:#fff;border-color:var(--violet);}
+  .tab .count{font-size:11.5px;font-weight:700;background:rgba(0,0,0,0.08);padding:1px 7px;border-radius:100px;}
+  .tab.active .count{background:rgba(255,255,255,0.25);}
+
+  /* ---------- TABLE / EMPTY STATE ---------- */
+  .table-panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;}
+  table{width:100%;border-collapse:collapse;}
+  thead th{text-align:left;font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#9A93AE;padding:14px 24px;border-bottom:1px solid var(--line);background:#FBFAFD;white-space:nowrap;}
+  .empty-row td{padding:0;}
+  .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:70px 20px;}
+  .empty-ic{width:64px;height:64px;border-radius:16px;background:#F4F2FA;color:#B4AECB;display:flex;align-items:center;justify-content:center;font-size:28px;}
+  .empty-text{font-size:14.5px;color:#A79FBF;font-weight:500;}
+
+  @media (max-width:760px){
+    .sidebar{display:none;}
+    .main{margin-left:0;}
+  }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-collapse">‹</div>
+  <div class="sidebar-brand"><span class="mark">S</span>ShopZone</div>
+  <nav class="sidebar-nav">
+    <a class="nav-item" href="#"><span class="ic">▦</span> Dashboard</a>
+    <a class="nav-item" href="#"><span class="ic">🛍</span> Products</a>
+    <a class="nav-item active" href="#"><span class="ic">📦</span> Orders</a>
+    <a class="nav-item" href="#"><span class="ic">👥</span> Customers</a>
+    <a class="nav-item" href="#"><span class="ic">📈</span> Analytics</a>
+  </nav>
+</aside>
+
+<div class="main">
+
+  <div class="topbar">
+    <div class="crumb"><b>Orders</b></div>
+    <div class="topbar-right">
+      <div class="search-mini">🔍 Search... <span style="margin-left:auto;color:#C4BEDB;">⌘K</span></div>
+      <div class="bell-wrap">🔔<span class="bell-dot"></span></div>
+      <div class="user-chip"><span class="avatar">A</span> Admin User</div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="content-head">
+      <h1>Orders</h1>
+      <span class="total-badge">0</span>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active">All <span class="count">0</span></div>
+      <div class="tab">Pending <span class="count">0</span></div>
+      <div class="tab">Processing <span class="count">0</span></div>
+      <div class="tab">Shipped <span class="count">0</span></div>
+      <div class="tab">Delivered <span class="count">0</span></div>
+      <div class="tab">Cancelled <span class="count">0</span></div>
+    </div>
+
+    <div class="table-panel">
+      <table>
+        <thead>
+          <tr>
+            <th>Order ID</th><th>Date</th><th>Customer</th><th>Items</th><th>Total</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="empty-row">
+            <td colspan="6">
+              <div class="empty-state">
+                <div class="empty-ic">📦</div>
+                <div class="empty-text">No orders found</div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

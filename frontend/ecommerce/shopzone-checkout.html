@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Checkout — ShopZone</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#161229;
+    --ink-soft:#4b4566;
+    --paper:#FAF9FC;
+    --card:#FFFFFF;
+    --line:#E7E3F0;
+    --violet:#5B3DF6;
+    --violet-deep:#2E1A78;
+    --violet-tint:#F1EDFC;
+    --mint:#1FAE7E;
+    --radius:18px;
+    --shadow: 0 1px 2px rgba(28,15,78,0.04), 0 12px 28px -14px rgba(28,15,78,0.18);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;min-height:100vh;display:flex;flex-direction:column;font-family:'Inter',sans-serif;color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased;}
+  h1,h2,h3{font-family:'Fraunces',serif;margin:0;letter-spacing:-0.01em;}
+  a{color:inherit;text-decoration:none;}
+  img{display:block;max-width:100%;}
+  button,input{font-family:inherit;}
+  main{flex:1;}
+
+  /* ---------- HEADER ---------- */
+  header{position:sticky;top:0;z-index:50;background:rgba(250,249,252,0.85);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);}
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:18px 32px;max-width:1360px;margin:0 auto;}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:19px;}
+  .brand .mark{width:34px;height:34px;border-radius:9px;background:linear-gradient(150deg,var(--violet),var(--violet-deep));color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-weight:600;font-size:17px;}
+  .nav-links{display:flex;gap:30px;font-size:14.5px;font-weight:500;color:var(--ink-soft);}
+  .nav-links a:hover{color:var(--ink);}
+  .nav-right{display:flex;align-items:center;gap:22px;font-size:14.5px;}
+  .search-mini{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:100px;padding:8px 14px;color:#9A93AE;font-size:13.5px;min-width:190px;}
+  .cart-wrap{position:relative;}
+  .icon-btn{color:var(--ink-soft);font-size:18px;}
+  .cart-badge{position:absolute;top:-7px;right:-9px;background:var(--violet);color:#fff;font-size:10.5px;font-weight:700;width:17px;height:17px;border-radius:100px;display:flex;align-items:center;justify-content:center;}
+  .user-chip{display:flex;align-items:center;gap:9px;font-weight:600;}
+  .avatar{width:30px;height:30px;border-radius:100px;background:var(--violet-tint);color:var(--violet);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;}
+
+  /* ---------- PAGE HEAD ---------- */
+  .page-head{max-width:1360px;margin:0 auto;padding:32px 32px 0;display:flex;align-items:center;gap:14px;}
+  .back-arrow{font-size:20px;color:var(--ink-soft);cursor:pointer;visibility:hidden;}
+  .back-arrow.show{visibility:visible;}
+  .back-arrow:hover{color:var(--violet);}
+  .page-head h1{font-size:32px;font-weight:600;}
+  .page-head .sub{font-size:14px;color:var(--ink-soft);margin-top:4px;}
+
+  /* ---------- STEPPER ---------- */
+  .stepper{max-width:1360px;margin:0 auto;padding:34px 32px 0;display:flex;justify-content:center;}
+  .stepper-inner{display:flex;align-items:center;}
+  .step{display:flex;flex-direction:column;align-items:center;gap:9px;}
+  .step-circle{width:44px;height:44px;border-radius:100px;background:#EFECF7;color:#A79FBF;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;transition:background .25s ease,color .25s ease;}
+  .step.active .step-circle, .step.done .step-circle{background:var(--violet);color:#fff;}
+  .step-label{font-size:13.5px;font-weight:600;color:#A79FBF;}
+  .step.active .step-label, .step.done .step-label{color:var(--ink);}
+  .step-line{width:120px;height:2px;background:#EFECF7;margin:0 6px;margin-bottom:24px;transition:background .25s ease;}
+  .step-line.done{background:var(--violet);}
+
+  /* ---------- LAYOUT ---------- */
+  .checkout-layout{max-width:1360px;margin:0 auto;padding:30px 32px 80px;display:grid;grid-template-columns:1fr 360px;gap:28px;align-items:start;}
+
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:32px;}
+  .panel-title{display:flex;align-items:center;gap:11px;font-size:19px;font-weight:600;margin-bottom:4px;}
+  .panel-title .ic{color:var(--violet);font-size:17px;}
+  .panel-sub{font-size:13.5px;color:var(--ink-soft);margin-bottom:26px;}
+
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px 20px;}
+  .field{display:flex;flex-direction:column;gap:7px;}
+  .field.full{grid-column:1/-1;}
+  .field label{font-size:13px;font-weight:700;display:flex;justify-content:space-between;}
+  .field label .opt{font-weight:500;color:#A79FBF;}
+  .field input, .field select{
+    border:1px solid var(--line);border-radius:11px;padding:12px 14px;font-size:14.5px;color:var(--ink);
+    outline:none;transition:border-color .15s ease, box-shadow .15s ease;background:#fff;
+  }
+  .field input:focus, .field select:focus{border-color:var(--violet);box-shadow:0 0 0 3px rgba(91,61,246,0.12);}
+  .field input::placeholder{color:#B8B2CC;}
+
+  .btn-main{width:100%;background:var(--violet);color:#fff;border:none;border-radius:100px;padding:16px 0;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;gap:9px;cursor:pointer;margin-top:30px;transition:background .2s ease;}
+  .btn-main:hover{background:var(--violet-deep);}
+  .btn-row{display:flex;gap:14px;margin-top:30px;}
+  .btn-back{padding:16px 24px;border:1.5px solid var(--ink);border-radius:100px;font-weight:700;font-size:14.5px;background:#fff;cursor:pointer;white-space:nowrap;transition:background .2s ease;}
+  .btn-back:hover{background:var(--ink);color:#fff;}
+  .btn-row .btn-main{margin-top:0;flex:1;}
+
+  /* Payment card visual */
+  .card-visual{
+    background:linear-gradient(120deg,#6E4CFF,#3B22B8);border-radius:16px;padding:26px 24px;color:#fff;
+    display:flex;flex-direction:column;justify-content:space-between;height:120px;margin-bottom:26px;
+    box-shadow:0 14px 30px -14px rgba(58,30,180,0.55);
+  }
+  .card-visual .dots{font-size:20px;letter-spacing:3px;font-weight:700;}
+  .card-visual .bottom{display:flex;justify-content:flex-end;font-size:22px;}
+  .secure-note{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-soft);margin-top:10px;}
+
+  .pwd-field{position:relative;}
+  .pwd-field .eye{position:absolute;right:13px;top:50%;transform:translateY(-50%);cursor:pointer;color:#9A93AE;font-size:14px;}
+
+  /* Review */
+  .review-block{margin-bottom:24px;}
+  .review-block:last-of-type{margin-bottom:0;}
+  .review-block h3{font-size:14px;font-weight:700;margin-bottom:10px;}
+  .review-card{background:#F8F7FB;border:1px solid var(--line);border-radius:13px;padding:16px 18px;font-size:14px;color:var(--ink-soft);line-height:1.65;}
+  .review-card b{color:var(--ink);}
+  .review-card .name{font-weight:700;color:var(--ink);font-size:15px;}
+
+  /* ---------- ORDER SUMMARY ---------- */
+  .summary{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:24px;position:sticky;top:90px;}
+  .summary h2{font-size:18px;font-weight:600;margin-bottom:18px;}
+  .sum-item{display:flex;gap:14px;align-items:center;margin-bottom:18px;}
+  .sum-thumb{width:52px;height:52px;border-radius:10px;overflow:hidden;background:#1c1c22;flex-shrink:0;}
+  .sum-thumb img{width:100%;height:100%;object-fit:cover;}
+  .sum-item-info{flex:1;}
+  .sum-item-info .nm{font-size:14px;font-weight:700;}
+  .sum-item-info .qty{font-size:12.5px;color:var(--ink-soft);margin-top:2px;}
+  .sum-item-price{font-size:14px;font-weight:700;}
+
+  hr.div{border:none;border-top:1px solid var(--line);margin:16px 0;}
+  .sum-row{display:flex;justify-content:space-between;font-size:14.5px;color:var(--ink-soft);margin-bottom:12px;}
+  .sum-row .v{color:var(--ink);font-weight:600;}
+  .sum-row .free{color:var(--mint);font-weight:700;}
+  .total-row{display:flex;justify-content:space-between;align-items:baseline;}
+  .total-row .lbl{font-size:15px;font-weight:700;}
+  .total-row .amt{font-size:24px;font-weight:700;font-family:'Fraunces',serif;}
+  .tax-note{font-size:11.5px;color:#9A93AE;text-align:right;margin-top:2px;}
+  .secure-row{display:flex;align-items:center;justify-content:center;gap:7px;font-size:12px;color:var(--ink-soft);margin-top:18px;}
+
+  /* ---------- FOOTER ---------- */
+  footer{background:#160F33;color:#C8C2DC;padding-top:56px;}
+  .footer-grid{max-width:1360px;margin:0 auto;padding:0 32px 36px;display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:40px;}
+  .footer-brand .brand{color:#fff;}
+  .footer-grid p{font-size:13.5px;line-height:1.6;margin-top:14px;color:#9389B5;max-width:240px;}
+  .footer-grid h4{font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#fff;margin-bottom:16px;}
+  .footer-grid ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:11px;font-size:13.5px;}
+  .footer-grid ul a:hover{color:#fff;}
+  .footer-bottom{border-top:1px solid rgba(255,255,255,0.08);padding:20px 32px;text-align:center;font-size:12.5px;color:#6E6590;}
+
+  .step-pane{display:none;}
+  .step-pane.active{display:block;}
+
+  @media (max-width:980px){
+    .checkout-layout{grid-template-columns:1fr;}
+    .form-grid{grid-template-columns:1fr;}
+    .nav-links{display:none;}
+    .step-line{width:60px;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="nav">
+    <div class="brand"><span class="mark">S</span>ShopZone</div>
+    <nav class="nav-links">
+      <a href="#">Products</a>
+      <a href="#">Orders</a>
+    </nav>
+    <div class="nav-right">
+      <div class="search-mini">🔍 Search... <span style="margin-left:auto;color:#C4BEDB;">⌘K</span></div>
+      <div class="cart-wrap"><a class="icon-btn" href="#">🛒</a><span class="cart-badge">1</span></div>
+      <div class="user-chip"><span class="avatar">A</span> Admin User ⌄</div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="page-head">
+    <span class="back-arrow" id="backArrow" onclick="prevStep()">←</span>
+    <div>
+      <h1>Checkout</h1>
+      <div class="sub">1 items</div>
+    </div>
+  </div>
+
+  <div class="stepper">
+    <div class="stepper-inner">
+      <div class="step active" id="step1">
+        <div class="step-circle">📍</div>
+        <div class="step-label">Shipping</div>
+      </div>
+      <div class="step-line" id="line1"></div>
+      <div class="step" id="step2">
+        <div class="step-circle">💳</div>
+        <div class="step-label">Payment</div>
+      </div>
+      <div class="step-line" id="line2"></div>
+      <div class="step" id="step3">
+        <div class="step-circle">📋</div>
+        <div class="step-label">Review</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="checkout-layout">
+
+    <div class="panel">
+
+      <!-- STEP 1: SHIPPING -->
+      <div class="step-pane active" id="pane1">
+        <div class="panel-title"><span class="ic">📍</span> Shipping Address</div>
+        <div class="panel-sub">Where should we deliver your order?</div>
+
+        <div class="form-grid">
+          <div class="field"><label>First Name</label><input type="text" placeholder="John"></div>
+          <div class="field"><label>Last Name</label><input type="text" placeholder="Doe"></div>
+          <div class="field full"><label>Email Address</label><input type="email" placeholder="john@example.com"></div>
+          <div class="field full"><label>Phone Number <span class="opt">Optional</span></label><input type="text" placeholder="+1 (555) 000-0000"></div>
+          <div class="field full"><label>Street Address</label><input type="text" placeholder="123 Main Street"></div>
+          <div class="field full"><label>Apartment / Suite <span class="opt">Optional</span></label><input type="text" placeholder="Apt 4B"></div>
+          <div class="field"><label>City</label><input type="text" placeholder="New York"></div>
+          <div class="field"><label>State</label><input type="text" placeholder="NY"></div>
+          <div class="field"><label>ZIP Code</label><input type="text" placeholder="10001"></div>
+          <div class="field"><label>Country</label><input type="text" placeholder="United States"></div>
+        </div>
+
+        <button class="btn-main" onclick="nextStep()">Continue to Payment →</button>
+      </div>
+
+      <!-- STEP 2: PAYMENT -->
+      <div class="step-pane" id="pane2">
+        <div class="panel-title"><span class="ic">💳</span> Payment Details</div>
+        <div class="panel-sub">Your payment information is encrypted and secure.</div>
+
+        <div class="card-visual">
+          <div class="dots">•••• •••• •••• ••••</div>
+          <div class="bottom">💳</div>
+        </div>
+
+        <div class="form-grid">
+          <div class="field full"><label>Card Number</label><input type="text" placeholder="1234 5678 9012 3456"></div>
+          <div class="field full"><label>Name on Card</label><input type="text" placeholder="John Doe"></div>
+          <div class="field"><label>Expiry Date</label><input type="text" placeholder="MM / YY"></div>
+          <div class="field pwd-field"><label>CVV</label><input type="password" placeholder="•••"><span class="eye">👁</span></div>
+        </div>
+
+        <div class="secure-note">🔒 This is a demo checkout — no real payment is processed.</div>
+
+        <div class="btn-row">
+          <button class="btn-back" onclick="prevStep()">← Back</button>
+          <button class="btn-main" onclick="nextStep()">Review Order →</button>
+        </div>
+      </div>
+
+      <!-- STEP 3: REVIEW -->
+      <div class="step-pane" id="pane3">
+        <div class="panel-title"><span class="ic">📋</span> Review Your Order</div>
+        <div class="panel-sub">Please confirm your details before placing the order.</div>
+
+        <div class="review-block">
+          <h3>Deliver To</h3>
+          <div class="review-card">
+            <div class="name">Aesha Umer</div>
+            Ghazi road, Lahore, Ghazi road, Lahore<br>
+            Lahore, Punjab 04200<br>
+            Pakistan<br>
+            aeshaumer292@gmail.com · +923071151118
+          </div>
+        </div>
+
+        <div class="review-block">
+          <h3>Payment Method</h3>
+          <div class="review-card">
+            <b>•• •••• •••• 4141</b><br>
+            London<br>
+            Expires 12/34
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn-back" onclick="prevStep()">← Back</button>
+          <button class="btn-main">🔒 Place Order</button>
+        </div>
+      </div>
+
+    </div>
+
+    <aside class="summary">
+      <h2>Order Summary</h2>
+
+      <div class="sum-item">
+        <div class="sum-thumb"><img src="https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=200&q=80" alt="Bluetooth Speaker"></div>
+        <div class="sum-item-info">
+          <div class="nm">Bluetooth Speaker</div>
+          <div class="qty">Qty 1</div>
+        </div>
+        <div class="sum-item-price">$79.99</div>
+      </div>
+
+      <hr class="div">
+
+      <div class="sum-row"><span>Subtotal</span><span class="v">$79.99</span></div>
+      <div class="sum-row"><span>Shipping</span><span class="free">Free</span></div>
+
+      <hr class="div">
+
+      <div class="total-row">
+        <span class="lbl">Total</span>
+        <span class="amt">$79.99</span>
+      </div>
+      <div class="tax-note">Tax included</div>
+
+      <div class="secure-row">🔒 Secure 256-bit SSL encryption</div>
+    </aside>
+
+  </div>
+</main>
+
+<footer>
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <div class="brand"><span class="mark">S</span>ShopZone</div>
+      <p>Quality products, delivered fast. Your trusted online shopping destination.</p>
+    </div>
+    <div>
+      <h4>Shop</h4>
+      <ul><li><a href="#">All Products</a></li><li><a href="#">My Orders</a></li><li><a href="#">Cart</a></li></ul>
+    </div>
+    <div>
+      <h4>Account</h4>
+      <ul><li><a href="#">Profile</a></li><li><a href="#">Sign In</a></li><li><a href="#">Register</a></li></ul>
+    </div>
+    <div>
+      <h4>Company</h4>
+      <ul><li><a href="#">About</a></li><li><a href="#">Contact</a></li><li><a href="#">Privacy Policy</a></li><li><a href="#">Terms of Service</a></li></ul>
+    </div>
+  </div>
+  <div class="footer-bottom">© 2026 ShopZone. All rights reserved.</div>
+</footer>
+
+<script>
+  let current = 1;
+  function render(){
+    for(let i=1;i<=3;i++){
+      document.getElementById('pane'+i).classList.toggle('active', i===current);
+      document.getElementById('step'+i).classList.toggle('active', i===current);
+      document.getElementById('step'+i).classList.toggle('done', i<current);
+    }
+    document.getElementById('line1').classList.toggle('done', current>1);
+    document.getElementById('line2').classList.toggle('done', current>2);
+    document.getElementById('backArrow').classList.toggle('show', current>1);
+  }
+  function nextStep(){ if(current<3){ current++; render(); window.scrollTo({top:0,behavior:'smooth'}); } }
+  function prevStep(){ if(current>1){ current--; render(); window.scrollTo({top:0,behavior:'smooth'}); } }
+  render();
+</script>
+
+</body>
+</html>

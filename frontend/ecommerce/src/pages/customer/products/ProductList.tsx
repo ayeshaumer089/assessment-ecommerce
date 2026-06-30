@@ -1,15 +1,15 @@
 import { useState, useMemo } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
   Search, SlidersHorizontal, X, ChevronLeft, ChevronRight, LayoutGrid,
 } from 'lucide-react'
 import { useProducts, useSearchProducts, useCategories } from '@/hooks/useProducts'
 import { useCart } from '@/hooks/useCart'
 import { useDebounce } from '@/hooks/useDebounce'
-import ProductCard from '@/components/common/ProductCard'
-import ProductCardSkeleton from '@/components/common/ProductCardSkeleton'
 import EmptyState from '@/components/ui/EmptyState'
 import ErrorState from '@/components/ui/ErrorState'
+import { formatCurrency } from '@/utils/formatters'
+import { ROUTES } from '@/constants/routes'
 import type { Product, ProductFilters } from '@/types'
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -54,6 +54,76 @@ function applyClientFilters(
   return items
 }
 
+// ── ShopZone product card (full-featured, scoped styling) ────────────────────
+function SzProductCard({
+  product,
+  onAddToCart,
+}: {
+  product: Product
+  onAddToCart: (p: Product) => void
+}) {
+  const [added, setAdded] = useState(false)
+  const hasDiscount = product.discountPercentage > 0
+  const isLowStock = product.stock > 0 && product.stock <= 10
+  const isOutOfStock = product.stock === 0
+  const rating = Math.round(product.rating || 0)
+  const detailUrl = ROUTES.CUSTOMER.PRODUCT_DETAIL.replace(':id', product.id)
+
+  const handleAdd = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (isOutOfStock) return
+    onAddToCart(product)
+    setAdded(true)
+    setTimeout(() => setAdded(false), 2000)
+  }
+
+  return (
+    <div className="sz-prod-card">
+      <Link to={detailUrl} className={`sz-prod-img${isOutOfStock ? ' dim' : ''}`}>
+        <img src={product.image} alt={product.name} loading="lazy" />
+        <div className="sz-prod-badges">
+          {hasDiscount && (
+            <span className="sz-prod-badge disc">-{Math.round(product.discountPercentage)}%</span>
+          )}
+          {isOutOfStock && <span className="sz-prod-badge oos">Out of stock</span>}
+        </div>
+        {isLowStock && !isOutOfStock && (
+          <span className="sz-prod-badge-low">Only {product.stock} left</span>
+        )}
+      </Link>
+      <div className="sz-prod-body">
+        <div className="sz-prod-cat">{product.category}</div>
+        <Link to={detailUrl}><h3>{product.name}</h3></Link>
+        <div className="sz-prod-desc">{product.description}</div>
+        <div className="sz-prod-rating">
+          <span style={{ color: 'var(--gold)' }}>{'★'.repeat(rating)}</span>
+          {'☆'.repeat(5 - rating)}
+          <span className="rc">({product.reviewCount})</span>
+        </div>
+        <div className="sz-prod-foot">
+          <span>
+            <span className="sz-price">{formatCurrency(product.discountedPrice)}</span>
+            {hasDiscount && (
+              <span className="sz-price-old">{formatCurrency(product.price)}</span>
+            )}
+          </span>
+          <span className={`sz-stock${isOutOfStock ? ' out' : ''}`}>
+            {isOutOfStock ? 'Out of stock' : isLowStock ? `${product.stock} left` : 'In stock'}
+          </span>
+        </div>
+        <button
+          className={`sz-btn-cart${added ? ' added' : ''}`}
+          onClick={handleAdd}
+          disabled={isOutOfStock}
+        >
+          {added ? '✓ Added' : '🛒 Add to Cart'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ── Filter panel (sidebar / drawer) ─────────────────────────────────────────
 interface FilterPanelProps {
   categories: { slug: string; name: string }[]
@@ -75,89 +145,69 @@ function FilterPanel({
   activeCount,
 }: FilterPanelProps) {
   return (
-    <div className="space-y-6">
+    <>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <SlidersHorizontal size={15} className="text-gray-500" />
-          <h3 className="text-sm font-semibold text-gray-800">Filters</h3>
+      <div className="sz-sidebar-title" style={{ justifyContent: 'space-between', marginBottom: 18 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+          <span className="ic"><SlidersHorizontal size={15} /></span>
+          Filters
           {activeCount > 0 && (
-            <span className="text-[11px] font-bold text-white bg-indigo-600 rounded-full px-1.5 py-0.5 leading-none">
+            <span
+              style={{
+                background: 'var(--violet)', color: '#fff', fontSize: 11, fontWeight: 700,
+                borderRadius: 999, padding: '1px 7px', lineHeight: 1.6,
+              }}
+            >
               {activeCount}
             </span>
           )}
-        </div>
+        </span>
         {activeCount > 0 && (
-          <button
-            onClick={onReset}
-            className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
-          >
-            Clear all
-          </button>
+          <button className="sz-clear-all" onClick={onReset}>Clear all</button>
         )}
       </div>
 
       {/* Category */}
-      <div>
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-          Category
-        </p>
-        <ul className="space-y-1">
-          <li>
-            <button
-              onClick={() => onCategory('')}
-              className={`w-full text-left px-3 py-2 rounded-xl text-sm transition-colors ${
-                selectedCategory === ''
-                  ? 'bg-indigo-50 text-indigo-700 font-semibold'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              All categories
-            </button>
-          </li>
+      <div className="sz-filter-group">
+        <div className="sz-filter-label">Category</div>
+        <div className="sz-filter-list">
+          <button
+            className={`sz-filter-item${selectedCategory === '' ? ' active' : ''}`}
+            onClick={() => onCategory('')}
+          >
+            All categories
+          </button>
           {categories.map((cat) => (
-            <li key={cat.slug}>
-              <button
-                onClick={() => onCategory(cat.slug)}
-                className={`w-full text-left px-3 py-2 rounded-xl text-sm capitalize transition-colors ${
-                  selectedCategory === cat.slug
-                    ? 'bg-indigo-50 text-indigo-700 font-semibold'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                {cat.name}
-              </button>
-            </li>
+            <button
+              key={cat.slug}
+              className={`sz-filter-item${selectedCategory === cat.slug ? ' active' : ''}`}
+              onClick={() => onCategory(cat.slug)}
+            >
+              {cat.name}
+            </button>
           ))}
-        </ul>
+        </div>
       </div>
 
       {/* Price range */}
-      <div>
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-          Price range
-        </p>
-        <ul className="space-y-1">
+      <div className="sz-filter-group">
+        <div className="sz-filter-label">Price range</div>
+        <div className="sz-filter-list">
           {PRICE_RANGES.map((range, i) => {
             const key = String(i)
             return (
-              <li key={key}>
-                <button
-                  onClick={() => onPriceRange(key)}
-                  className={`w-full text-left px-3 py-2 rounded-xl text-sm transition-colors ${
-                    priceRange === key
-                      ? 'bg-indigo-50 text-indigo-700 font-semibold'
-                      : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-                >
-                  {range.label}
-                </button>
-              </li>
+              <button
+                key={key}
+                className={`sz-filter-item${priceRange === key ? ' active' : ''}`}
+                onClick={() => onPriceRange(key)}
+              >
+                {range.label}
+              </button>
             )
           })}
-        </ul>
+        </div>
       </div>
-    </div>
+    </>
   )
 }
 
@@ -188,17 +238,17 @@ function Pagination({ page, totalPages, total, limit, onPage }: PaginationProps)
   }
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-10 pt-6 border-t border-gray-100">
-      <p className="text-sm text-gray-500">
-        Showing <span className="font-semibold text-gray-800">{start}–{end}</span> of{' '}
-        <span className="font-semibold text-gray-800">{total}</span> products
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-10 pt-6 border-t border-[var(--line)]">
+      <p className="text-sm text-[var(--ink-soft)]">
+        Showing <span className="font-semibold text-[var(--ink)]">{start}–{end}</span> of{' '}
+        <span className="font-semibold text-[var(--ink)]">{total}</span> products
       </p>
 
       <div className="flex items-center gap-1">
         <button
           onClick={() => onPage(page - 1)}
           disabled={page === 1}
-          className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-[var(--ink-soft)] hover:text-[var(--ink)] hover:bg-[#F5F3FA] rounded-xl disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           <ChevronLeft size={15} /> Prev
         </button>
@@ -214,8 +264,8 @@ function Pagination({ page, totalPages, total, limit, onPage }: PaginationProps)
               onClick={() => onPage(p)}
               className={`w-9 h-9 flex items-center justify-center rounded-xl text-sm font-medium transition-colors ${
                 p === page
-                  ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200'
-                  : 'text-gray-600 hover:bg-gray-100'
+                  ? 'bg-[var(--violet)] text-white'
+                  : 'text-[var(--ink-soft)] hover:bg-[#F5F3FA]'
               }`}
             >
               {p}
@@ -226,7 +276,7 @@ function Pagination({ page, totalPages, total, limit, onPage }: PaginationProps)
         <button
           onClick={() => onPage(page + 1)}
           disabled={page === totalPages}
-          className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-[var(--ink-soft)] hover:text-[var(--ink)] hover:bg-[#F5F3FA] rounded-xl disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           Next <ChevronRight size={15} />
         </button>
@@ -310,19 +360,17 @@ export default function ProductList() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div>
+    <div className="sz-home">
       {/* Page header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Products</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          {isLoading ? 'Loading…' : `${data?.total ?? filteredItems.length} items available`}
-        </p>
+      <div className="sz-page-head">
+        <h1>Products</h1>
+        <p>{isLoading ? 'Loading…' : `${data?.total ?? filteredItems.length} items available`}</p>
       </div>
 
-      <div className="flex gap-6">
+      <div className="flex gap-7">
         {/* ── Desktop filter sidebar ────────────────────────────────── */}
-        <aside className="hidden lg:block w-56 xl:w-64 shrink-0">
-          <div className="sticky top-24 bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <aside className="hidden lg:block w-64 shrink-0">
+          <div className="sz-sidebar sticky top-24">
             <FilterPanel
               categories={categoriesData}
               selectedCategory={category}
@@ -338,82 +386,58 @@ export default function ProductList() {
         {/* ── Main content ─────────────────────────────────────────── */}
         <div className="flex-1 min-w-0">
           {/* Search + sort + mobile filter button */}
-          <div className="flex flex-col sm:flex-row gap-3 mb-6">
-            {/* Search bar */}
-            <div className="flex-1 relative">
-              <Search
-                size={16}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-              />
+          <div className="sz-toolbar">
+            <div className="sz-search-bar">
+              <Search size={16} className="shrink-0" />
               <input
                 type="search"
                 value={rawSearch}
                 onChange={(e) => setParam('q', e.target.value)}
                 placeholder="Search products…"
-                className="w-full pl-10 pr-10 py-2.5 text-sm bg-white border border-gray-200 rounded-xl outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
               />
               {rawSearch && (
-                <button
-                  onClick={() => setParam('q', '')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
-                >
+                <button className="clr" onClick={() => setParam('q', '')} aria-label="Clear search">
                   <X size={15} />
                 </button>
               )}
             </div>
 
-            <div className="flex gap-2 shrink-0">
-              {/* Sort */}
-              <select
-                value={sort}
-                onChange={(e) => setParam('sort', e.target.value)}
-                className="px-3 py-2.5 text-sm bg-white border border-gray-200 rounded-xl outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all text-gray-700 cursor-pointer"
-              >
-                {SORT_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
+            <select
+              className="sz-sort-select"
+              value={sort}
+              onChange={(e) => setParam('sort', e.target.value)}
+            >
+              {SORT_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
 
-              {/* Mobile filter toggle */}
-              <button
-                onClick={() => setDrawerOpen(true)}
-                className="lg:hidden relative flex items-center gap-2 px-4 py-2.5 text-sm font-medium bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
-              >
-                <SlidersHorizontal size={15} />
-                Filters
-                {activeFilterCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 text-[10px] font-bold text-white bg-indigo-600 rounded-full flex items-center justify-center leading-none">
-                    {activeFilterCount}
-                  </span>
-                )}
-              </button>
-            </div>
+            {/* Mobile filter toggle */}
+            <button className="sz-filter-btn lg:hidden" onClick={() => setDrawerOpen(true)}>
+              <SlidersHorizontal size={15} />
+              Filters
+              {activeFilterCount > 0 && <span className="cnt">{activeFilterCount}</span>}
+            </button>
           </div>
 
           {/* Active filter chips */}
           {(category || priceRange !== '0') && (
-            <div className="flex flex-wrap gap-2 mb-5">
+            <div className="sz-chips">
               {category && (
-                <span className="inline-flex items-center gap-1.5 pl-3 pr-1.5 py-1 bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-medium rounded-full">
+                <span className="sz-chip">
                   {category}
-                  <button
-                    onClick={() => setParam('category', '')}
-                    className="hover:bg-indigo-100 rounded-full p-0.5"
-                  >
-                    <X size={11} />
+                  <button onClick={() => setParam('category', '')} aria-label="Remove category filter">
+                    <X size={12} />
                   </button>
                 </span>
               )}
               {priceRange !== '0' && (
-                <span className="inline-flex items-center gap-1.5 pl-3 pr-1.5 py-1 bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-medium rounded-full">
+                <span className="sz-chip">
                   {PRICE_RANGES[Number(priceRange)]?.label}
-                  <button
-                    onClick={() => setParam('price', '')}
-                    className="hover:bg-indigo-100 rounded-full p-0.5"
-                  >
-                    <X size={11} />
+                  <button onClick={() => setParam('price', '')} aria-label="Remove price filter">
+                    <X size={12} />
                   </button>
                 </span>
               )}
@@ -422,17 +446,12 @@ export default function ProductList() {
 
           {/* Search mode banner */}
           {isSearching && (
-            <div className="mb-5 flex items-center justify-between p-3.5 bg-blue-50 border border-blue-200 rounded-xl">
-              <p className="text-sm text-blue-700">
-                Results for <span className="font-semibold">"{debouncedSearch}"</span>
+            <div className="sz-banner">
+              <p>
+                Results for <span style={{ fontWeight: 700 }}>"{debouncedSearch}"</span>
                 {filteredItems.length > 0 && ` — ${filteredItems.length} found`}
               </p>
-              <button
-                onClick={() => setParam('q', '')}
-                className="text-sm text-blue-700 font-semibold hover:underline shrink-0"
-              >
-                Clear search
-              </button>
+              <button onClick={() => setParam('q', '')}>Clear search</button>
             </div>
           )}
 
@@ -440,9 +459,9 @@ export default function ProductList() {
           {isError ? (
             <ErrorState type="network" onRetry={() => refetch()} />
           ) : isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
+            <div className="sz-products-grid">
               {Array.from({ length: PAGE_SIZE }).map((_, i) => (
-                <ProductCardSkeleton key={i} />
+                <div key={i} className="sz-skel" style={{ height: 360 }} />
               ))}
             </div>
           ) : displayedItems.length === 0 ? (
@@ -457,16 +476,16 @@ export default function ProductList() {
               action={
                 <button
                   onClick={resetFilters}
-                  className="px-4 py-2 text-sm font-medium text-indigo-600 border border-indigo-300 rounded-xl hover:bg-indigo-50"
+                  className="px-4 py-2 text-sm font-medium text-[var(--violet)] border border-[#DFD7F4] rounded-full hover:bg-[var(--violet-tint)]"
                 >
                   Clear filters
                 </button>
               }
             />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
+            <div className="sz-products-grid">
               {displayedItems.map((product) => (
-                <ProductCard
+                <SzProductCard
                   key={product.id}
                   product={product}
                   onAddToCart={handleAddToCart}
@@ -496,8 +515,8 @@ export default function ProductList() {
             onClick={() => setDrawerOpen(false)}
           />
           <div className="fixed inset-y-0 right-0 z-50 w-72 bg-white shadow-2xl flex flex-col lg:hidden">
-            <div className="flex items-center justify-between px-5 h-16 border-b border-gray-100 shrink-0">
-              <h3 className="font-semibold text-gray-900">Filters</h3>
+            <div className="flex items-center justify-between px-5 h-16 border-b border-[var(--line)] shrink-0">
+              <h3 className="font-semibold text-[var(--ink)]">Filters</h3>
               <button
                 onClick={() => setDrawerOpen(false)}
                 className="p-2 rounded-lg text-gray-500 hover:bg-gray-100"
