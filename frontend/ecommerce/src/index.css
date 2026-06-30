@@ -1257,3 +1257,144 @@ html {
 .sz-success .sz-btn-fill:hover { background:var(--violet-deep); }
 @media (max-width:560px) { .sz-success .sz-ship-pay-row { grid-template-columns:1fr; } .sz-success .sz-sp-block:first-child { border-right:none; border-bottom:1px solid var(--line); } .sz-success .sz-actions { flex-direction:column; } }
 
+
+/* ======================== Admin Product Modals (adm-*) ======================== */
+@keyframes adm-modal-rise {
+  from { opacity:0; transform:translateY(14px) scale(.98); }
+  to   { opacity:1; transform:translateY(0)    scale(1);   }
+}
+
+.adm-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+  background: rgba(15,15,20,0.55); backdrop-filter: blur(4px);
+}
+
+.adm-modal {
+  width: 430px; max-width: 92vw;
+  background: #fff; border-radius: 18px;
+  box-shadow: 0 30px 60px -15px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.04);
+  overflow: hidden; display: flex; flex-direction: column;
+  animation: adm-modal-rise .35s cubic-bezier(.2,.8,.2,1);
+}
+.adm-modal--sm { width: 400px; max-width: 90vw; }
+
+/* Header */
+.adm-modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 22px 26px 18px; border-bottom: 1px solid #e7e7ee;
+  position: relative; flex-shrink: 0;
+}
+.adm-modal-header--accent::before {
+  content: ""; position: absolute; left: 0; top: 0;
+  width: 100%; height: 3px;
+  background: linear-gradient(90deg, #5B3DF6, #b9a6ff);
+}
+.adm-modal-header h2 {
+  margin: 0; font-size: 19px; font-weight: 700;
+  color: #16161d; letter-spacing: .2px; font-family: inherit;
+}
+
+/* Delete header variant */
+.adm-modal-header--delete {
+  padding: 24px 26px 16px; border-bottom: none;
+  align-items: flex-start; gap: 14px;
+}
+.adm-del-header-left { display: flex; align-items: center; gap: 14px; }
+.adm-del-icon-wrap {
+  width: 42px; height: 42px; flex-shrink: 0; border-radius: 12px;
+  background: #fdeceb; display: flex; align-items: center; justify-content: center;
+}
+
+/* Close button */
+.adm-close-btn {
+  width: 30px; height: 30px; border: none; background: transparent;
+  border-radius: 8px; color: #6b6b78; font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s, color .15s; flex-shrink: 0;
+}
+.adm-close-btn:hover { background: #f2f2f7; color: #16161d; }
+
+/* Body */
+.adm-modal-body { padding: 22px 26px 6px; max-height: 62vh; overflow-y: auto; }
+.adm-modal-body::-webkit-scrollbar { width: 8px; }
+.adm-modal-body::-webkit-scrollbar-thumb { background: #e3e3ea; border-radius: 8px; }
+
+.adm-modal-body--delete {
+  padding: 0 26px 24px 82px; max-height: none; overflow-y: visible;
+}
+.adm-modal-body--delete p { margin: 0; font-size: 14.5px; line-height: 1.55; color: #6b6b78; }
+.adm-modal-body--delete strong { color: #16161d; font-weight: 700; }
+
+/* Form fields */
+.adm-field { margin-bottom: 18px; }
+.adm-field > label {
+  display: block; font-size: 12.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .6px;
+  color: #6b6b78; margin-bottom: 7px; font-family: inherit;
+}
+.adm-row { display: flex; gap: 14px; }
+.adm-row .adm-field { flex: 1; }
+.adm-field-err { font-size: 12px; color: #e5484d; margin-top: 5px; margin-bottom: 0; }
+
+/* Inputs, selects, textareas */
+.adm-input, .adm-select, .adm-textarea {
+  width: 100%; padding: 11px 13px; font-size: 14.5px;
+  color: #16161d; background: #fafafc;
+  border: 1.5px solid #e7e7ee; border-radius: 10px;
+  outline: none; font-family: inherit;
+  transition: border-color .15s, box-shadow .15s, background .15s;
+}
+.adm-input::placeholder, .adm-textarea::placeholder { color: #a9a9b8; }
+.adm-input:focus, .adm-select:focus, .adm-textarea:focus {
+  border-color: #5B3DF6; background: #fff;
+  box-shadow: 0 0 0 4px rgba(91,61,246,0.1);
+}
+.adm-input.adm-input--err, .adm-select.adm-input--err, .adm-textarea.adm-input--err { border-color: #e5484d; }
+.adm-input.adm-input--err:focus, .adm-select.adm-input--err:focus, .adm-textarea.adm-input--err:focus {
+  border-color: #e5484d; box-shadow: 0 0 0 4px rgba(229,72,77,0.1);
+}
+.adm-textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+.adm-select {
+  appearance: none; -webkit-appearance: none;
+  background-color: #fafafc;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' stroke='%236b6b78' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat: no-repeat; background-position: right 13px center;
+  padding-right: 34px;
+}
+.adm-select:focus { background-color: #fff; }
+
+/* Footer */
+.adm-modal-footer { display: flex; flex-direction: column; gap: 12px; padding: 18px 26px 24px; flex-shrink: 0; }
+.adm-modal-footer--bordered { border-top: 1px solid #e7e7ee; padding-top: 18px; }
+.adm-footer-btns { display: flex; justify-content: flex-end; gap: 10px; }
+.adm-err-banner {
+  background: #FFF5F5; border: 1px solid #FED7D7;
+  border-radius: 10px; padding: 10px 16px; font-size: 13.5px; color: #C53030;
+}
+
+/* Buttons */
+.adm-btn {
+  padding: 10px 20px; font-size: 14px; font-weight: 600;
+  border-radius: 10px; border: none; cursor: pointer;
+  transition: transform .15s, box-shadow .15s, background .15s;
+  font-family: inherit; line-height: 1;
+}
+.adm-btn:active:not(:disabled) { transform: scale(.97); }
+.adm-btn:disabled { opacity: .6; cursor: not-allowed; }
+
+.adm-btn-cancel { background: #fff; color: #6b6b78; border: 1.5px solid #e7e7ee; }
+.adm-btn-cancel:hover:not(:disabled) { background: #f5f5f8; color: #16161d; }
+
+.adm-btn-primary {
+  background: linear-gradient(135deg, #5B3DF6, #2E1A78);
+  color: #fff; box-shadow: 0 8px 18px -6px rgba(91,61,246,0.55);
+}
+.adm-btn-primary:hover:not(:disabled) { box-shadow: 0 10px 22px -6px rgba(91,61,246,0.7); }
+
+.adm-btn-danger {
+  background: linear-gradient(135deg, #e5484d, #c8332f);
+  color: #fff; box-shadow: 0 8px 18px -6px rgba(229,72,77,0.55);
+}
+.adm-btn-danger:hover:not(:disabled) { box-shadow: 0 10px 22px -6px rgba(229,72,77,0.7); }
+

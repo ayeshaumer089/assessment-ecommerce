@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Edit Product</title>
+<style>
+  :root{
+    --bg-overlay: rgba(15,15,20,0.55);
+    --card-bg: #ffffff;
+    --ink: #16161d;
+    --ink-soft: #6b6b78;
+    --line: #e7e7ee;
+    --accent: #6c5ce7;
+    --accent-soft: #f1edff;
+    --accent-deep: #5a3fe0;
+    --radius: 18px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;
+    background:
+      radial-gradient(circle at 20% 20%, #2b2b3d, transparent 60%),
+      radial-gradient(circle at 80% 80%, #1f1f2e, transparent 60%),
+      #14141c;
+    background-attachment:fixed;
+  }
+  .overlay{
+    position:relative;
+    width:100%;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:var(--bg-overlay);
+    backdrop-filter:blur(4px);
+  }
+  .modal{
+    width:430px;
+    max-width:92vw;
+    background:var(--card-bg);
+    border-radius:var(--radius);
+    box-shadow:0 30px 60px -15px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.04);
+    overflow:hidden;
+    animation:rise .35s cubic-bezier(.2,.8,.2,1);
+  }
+  @keyframes rise{
+    from{opacity:0; transform:translateY(14px) scale(.98);}
+    to{opacity:1; transform:translateY(0) scale(1);}
+  }
+  .modal-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:22px 26px 18px;
+    border-bottom:1px solid var(--line);
+    position:relative;
+  }
+  .modal-header::before{
+    content:"";
+    position:absolute;
+    left:0; top:0;
+    width:100%; height:3px;
+    background:linear-gradient(90deg, var(--accent), #b9a6ff);
+  }
+  .modal-header h2{
+    margin:0;
+    font-size:19px;
+    font-weight:700;
+    color:var(--ink);
+    letter-spacing:.2px;
+  }
+  .close-btn{
+    width:30px; height:30px;
+    border:none;
+    background:transparent;
+    border-radius:8px;
+    color:var(--ink-soft);
+    font-size:16px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition:.15s;
+  }
+  .close-btn:hover{ background:#f2f2f7; color:var(--ink); }
+
+  .modal-body{
+    padding:22px 26px 6px;
+    max-height:62vh;
+    overflow-y:auto;
+  }
+  .field{ margin-bottom:18px; }
+  .field label{
+    display:block;
+    font-size:12.5px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.6px;
+    color:var(--ink-soft);
+    margin-bottom:7px;
+  }
+  .row{ display:flex; gap:14px; }
+  .row .field{ flex:1; }
+
+  input, select, textarea{
+    width:100%;
+    padding:11px 13px;
+    font-size:14.5px;
+    color:var(--ink);
+    background:#fafafc;
+    border:1.5px solid var(--line);
+    border-radius:10px;
+    outline:none;
+    font-family:inherit;
+    transition:.15s border-color, .15s box-shadow, .15s background;
+  }
+  input::placeholder, textarea::placeholder{ color:#a9a9b8; }
+  input:focus, select:focus, textarea:focus{
+    border-color:var(--accent);
+    background:#fff;
+    box-shadow:0 0 0 4px var(--accent-soft);
+  }
+  textarea{ resize:vertical; min-height:80px; line-height:1.5; }
+
+  select{
+    appearance:none;
+    -webkit-appearance:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' stroke='%236b6b78' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat:no-repeat;
+    background-position:right 13px center;
+    padding-right:34px;
+  }
+
+  .modal-footer{
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+    padding:18px 26px 24px;
+  }
+  .btn{
+    padding:10px 20px;
+    font-size:14px;
+    font-weight:600;
+    border-radius:10px;
+    border:none;
+    cursor:pointer;
+    transition:.15s transform, .15s box-shadow, .15s background;
+  }
+  .btn:active{ transform:scale(.97); }
+  .btn-cancel{
+    background:#fff;
+    color:var(--ink-soft);
+    border:1.5px solid var(--line);
+  }
+  .btn-cancel:hover{ background:#f5f5f8; color:var(--ink); }
+  .btn-primary{
+    background:linear-gradient(135deg, var(--accent), var(--accent-deep));
+    color:#fff;
+    box-shadow:0 8px 18px -6px rgba(108,92,231,0.55);
+  }
+  .btn-primary:hover{ box-shadow:0 10px 22px -6px rgba(108,92,231,0.7); }
+
+  .modal-body::-webkit-scrollbar{ width:8px; }
+  .modal-body::-webkit-scrollbar-thumb{ background:#e3e3ea; border-radius:8px; }
+</style>
+</head>
+<body>
+<div class="overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Edit Product</h2>
+      <button class="close-btn">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Name</label>
+        <input type="text" value="Running Shoes">
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Price</label>
+          <input type="text" value="129.99">
+        </div>
+        <div class="field">
+          <label>Stock</label>
+          <input type="text" value="43">
+        </div>
+      </div>
+      <div class="field">
+        <label>Category</label>
+        <select>
+          <option selected>Sports</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Image URL</label>
+        <input type="text" value="https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=300&fit=crop">
+      </div>
+      <div class="field">
+        <label>Description</label>
+        <textarea>Lightweight running shoes with excellent cushioning.</textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-cancel">Cancel</button>
+      <button class="btn btn-primary">Save Changes</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

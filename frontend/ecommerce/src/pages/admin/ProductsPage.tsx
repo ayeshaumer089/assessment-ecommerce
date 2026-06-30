@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -6,9 +7,6 @@ import { Plus, Search, Pencil, Trash2, Package, ChevronLeft, ChevronRight } from
 import { useProducts, useCategories, useSearchProducts } from '@/hooks/useProducts'
 import { useCreateProduct, useUpdateProduct, useDeleteProduct } from '@/hooks/useAdminProducts'
 import { useDebounce } from '@/hooks/useDebounce'
-import Modal from '@/components/ui/Modal'
-import Button from '@/components/ui/Button'
-import Input from '@/components/ui/Input'
 import { formatCurrency } from '@/utils/formatters'
 import type { Product } from '@/types'
 
@@ -88,6 +86,26 @@ export default function AdminProductsPage() {
   const total      = data?.total ?? 0
   const totalPages = data?.totalPages ?? 1
   const products   = data?.items ?? []
+
+  // Scroll lock while any modal is open
+  useEffect(() => {
+    const anyOpen = formOpen || !!deleteTarget
+    document.body.style.overflow = anyOpen ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
+  }, [formOpen, deleteTarget])
+
+  // Close on Escape
+  useEffect(() => {
+    if (!formOpen && !deleteTarget) return
+    const handle = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      if (formOpen) closeForm()
+      else if (deleteTarget) closeDelete()
+    }
+    document.addEventListener('keydown', handle)
+    return () => document.removeEventListener('keydown', handle)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formOpen, deleteTarget])
 
   return (
     <div className="sz-admin">
@@ -170,81 +188,173 @@ export default function AdminProductsPage() {
         </div>
       )}
 
-      {/* Add/Edit Modal */}
-      <Modal
-        open={formOpen}
-        onClose={closeForm}
-        title={editingProduct ? 'Edit Product' : 'Add Product'}
-        size="xl"
-        footer={
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {mutationError && (
-              <div style={{ background: '#FFF5F5', border: '1px solid #FED7D7', borderRadius: 10, padding: '10px 16px', fontSize: 13.5, color: '#C53030' }}>
-                {mutationError.message ?? 'Something went wrong.'}
-              </div>
-            )}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-              <Button variant="outline" onClick={closeForm}>Cancel</Button>
-              <Button variant="primary" loading={mutationPending} onClick={handleSubmit(onSubmit)}>
-                {editingProduct ? 'Save Changes' : 'Add Product'}
-              </Button>
-            </div>
-          </div>
-        }
-      >
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <Input label="Name" error={errors.name?.message} {...register('name')} />
-          <div className="grid grid-cols-2 gap-4">
-            <Input label="Price" type="number" step="0.01" error={errors.price?.message} {...register('price')} />
-            <Input label="Stock" type="number" error={errors.stock?.message} {...register('stock')} />
-          </div>
-          {categories.length > 0 ? (
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-gray-700">Category</label>
-              <select {...register('category')} className="block w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm bg-white outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100">
-                <option value="">Select a category</option>
-                {categories.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
-              </select>
-              {errors.category && <p className="text-xs text-red-600">{errors.category.message}</p>}
-            </div>
-          ) : (
-            <Input label="Category" error={errors.category?.message} {...register('category')} />
-          )}
-          <Input label="Image URL" placeholder="https://example.com/product.jpg" error={errors.image?.message} {...register('image')} />
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-gray-700">Description</label>
-            <textarea {...register('description')} rows={3} className="block w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm bg-white outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 resize-none" placeholder="Describe the product..." />
-            {errors.description && <p className="text-xs text-red-600">{errors.description.message}</p>}
-          </div>
-        </form>
-      </Modal>
+      {/* ── Add / Edit Modal ── */}
+      {formOpen && createPortal(
+        <div
+          className="adm-overlay"
+          onClick={(e) => { if (e.target === e.currentTarget) closeForm() }}
+        >
+          <div className="adm-modal" role="dialog" aria-modal="true" aria-labelledby="adm-form-title">
 
-      {/* Delete Modal */}
-      <Modal
-        open={!!deleteTarget}
-        onClose={closeDelete}
-        title="Delete Product"
-        size="sm"
-        footer={
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {deleteMutation.error && (
-              <div style={{ background: '#FFF5F5', border: '1px solid #FED7D7', borderRadius: 10, padding: '10px 16px', fontSize: 13.5, color: '#C53030' }}>
-                {(deleteMutation.error as Error).message ?? 'Failed to delete product.'}
-              </div>
-            )}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-              <Button variant="outline" onClick={closeDelete}>Cancel</Button>
-              <Button variant="danger" loading={deleteMutation.isPending} onClick={confirmDelete}>Delete</Button>
+            <div className="adm-modal-header adm-modal-header--accent">
+              <h2 id="adm-form-title">{editingProduct ? 'Edit Product' : 'Add Product'}</h2>
+              <button className="adm-close-btn" onClick={closeForm} aria-label="Close">✕</button>
             </div>
+
+            <div className="adm-modal-body">
+              <form onSubmit={handleSubmit(onSubmit)}>
+                <div className="adm-field">
+                  <label>Name</label>
+                  <input
+                    className={`adm-input${errors.name ? ' adm-input--err' : ''}`}
+                    {...register('name')}
+                  />
+                  {errors.name && <p className="adm-field-err">{errors.name.message}</p>}
+                </div>
+
+                <div className="adm-row">
+                  <div className="adm-field">
+                    <label>Price</label>
+                    <input
+                      className={`adm-input${errors.price ? ' adm-input--err' : ''}`}
+                      type="number"
+                      step="0.01"
+                      {...register('price')}
+                    />
+                    {errors.price && <p className="adm-field-err">{errors.price.message}</p>}
+                  </div>
+                  <div className="adm-field">
+                    <label>Stock</label>
+                    <input
+                      className={`adm-input${errors.stock ? ' adm-input--err' : ''}`}
+                      type="number"
+                      {...register('stock')}
+                    />
+                    {errors.stock && <p className="adm-field-err">{errors.stock.message}</p>}
+                  </div>
+                </div>
+
+                <div className="adm-field">
+                  <label>Category</label>
+                  {categories.length > 0 ? (
+                    <>
+                      <select
+                        className={`adm-select${errors.category ? ' adm-input--err' : ''}`}
+                        {...register('category')}
+                      >
+                        <option value="">Select a category</option>
+                        {categories.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+                      </select>
+                      {errors.category && <p className="adm-field-err">{errors.category.message}</p>}
+                    </>
+                  ) : (
+                    <>
+                      <input
+                        className={`adm-input${errors.category ? ' adm-input--err' : ''}`}
+                        {...register('category')}
+                      />
+                      {errors.category && <p className="adm-field-err">{errors.category.message}</p>}
+                    </>
+                  )}
+                </div>
+
+                <div className="adm-field">
+                  <label>Image URL</label>
+                  <input
+                    className={`adm-input${errors.image ? ' adm-input--err' : ''}`}
+                    placeholder="https://example.com/product.jpg"
+                    {...register('image')}
+                  />
+                  {errors.image && <p className="adm-field-err">{errors.image.message}</p>}
+                </div>
+
+                <div className="adm-field" style={{ marginBottom: 0 }}>
+                  <label>Description</label>
+                  <textarea
+                    className={`adm-textarea${errors.description ? ' adm-input--err' : ''}`}
+                    placeholder="Describe the product..."
+                    {...register('description')}
+                  />
+                  {errors.description && <p className="adm-field-err">{errors.description.message}</p>}
+                </div>
+              </form>
+            </div>
+
+            <div className="adm-modal-footer">
+              {mutationError && (
+                <div className="adm-err-banner">{mutationError.message ?? 'Something went wrong.'}</div>
+              )}
+              <div className="adm-footer-btns">
+                <button className="adm-btn adm-btn-cancel" onClick={closeForm}>Cancel</button>
+                <button
+                  className="adm-btn adm-btn-primary"
+                  disabled={mutationPending}
+                  onClick={handleSubmit(onSubmit)}
+                >
+                  {mutationPending ? 'Saving…' : (editingProduct ? 'Save Changes' : 'Add Product')}
+                </button>
+              </div>
+            </div>
+
           </div>
-        }
-      >
-        <p style={{ fontSize: 14, color: 'var(--ink-soft)' }}>
-          Are you sure you want to delete{' '}
-          <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{deleteTarget?.name}</span>?
-          This action cannot be undone.
-        </p>
-      </Modal>
+        </div>,
+        document.body,
+      )}
+
+      {/* ── Delete Modal ── */}
+      {!!deleteTarget && createPortal(
+        <div
+          className="adm-overlay"
+          onClick={(e) => { if (e.target === e.currentTarget) closeDelete() }}
+        >
+          <div className="adm-modal adm-modal--sm" role="dialog" aria-modal="true" aria-labelledby="adm-del-title">
+
+            <div className="adm-modal-header adm-modal-header--delete">
+              <div className="adm-del-header-left">
+                <div className="adm-del-icon-wrap">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#e5484d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="21" height="21">
+                    <path d="M3 6h18" />
+                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                    <line x1="10" y1="11" x2="10" y2="17" />
+                    <line x1="14" y1="11" x2="14" y2="17" />
+                  </svg>
+                </div>
+                <h2 id="adm-del-title">Delete Product</h2>
+              </div>
+              <button className="adm-close-btn" onClick={closeDelete} aria-label="Close">✕</button>
+            </div>
+
+            <div className="adm-modal-body adm-modal-body--delete">
+              <p>
+                Are you sure you want to delete{' '}
+                <strong>{deleteTarget.name}</strong>?{' '}
+                This action cannot be undone.
+              </p>
+            </div>
+
+            <div className="adm-modal-footer adm-modal-footer--bordered">
+              {deleteMutation.error && (
+                <div className="adm-err-banner">
+                  {(deleteMutation.error as Error).message ?? 'Failed to delete product.'}
+                </div>
+              )}
+              <div className="adm-footer-btns">
+                <button className="adm-btn adm-btn-cancel" onClick={closeDelete}>Cancel</button>
+                <button
+                  className="adm-btn adm-btn-danger"
+                  disabled={deleteMutation.isPending}
+                  onClick={confirmDelete}
+                >
+                  {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>,
+        document.body,
+      )}
     </div>
   )
 }
