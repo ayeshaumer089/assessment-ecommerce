@@ -133,6 +133,7 @@ html {
   --violet: #5B3DF6;
   --violet-deep: #2E1A78;
   --violet-dark: #1C0F4E;
+  --violet-tint: #F1EDFC;
   --coral: #FF5A5F;
   --gold: #E8A93B;
   --mint: #1FAE7E;
@@ -279,7 +280,7 @@ html {
   transition: transform .2s ease, box-shadow .2s ease;
 }
 .sz-prod-card:hover { transform: translateY(-4px); box-shadow: var(--sz-shadow); }
-.sz-prod-img { aspect-ratio: 1 / 0.92; overflow: hidden; background: #F2F0F8; display: block; }
+.sz-prod-img { aspect-ratio: 1 / 0.92; overflow: hidden; background: #F2F0F8; display: block; position: relative; }
 .sz-prod-img img { width: 100%; height: 100%; object-fit: cover; transition: transform .4s ease; }
 .sz-prod-card:hover .sz-prod-img img { transform: scale(1.05); }
 .sz-prod-body { padding: 18px 18px 20px; display: flex; flex-direction: column; flex: 1; }
@@ -339,3 +340,101 @@ html {
   .sz-hero h1 { font-size: 34px; }
   .sz-hero-stats { gap: 26px; }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   ShopZone — Products listing (scoped under .sz-home)
+   ════════════════════════════════════════════════════════════ */
+.sz-page-head { margin-bottom: 24px; }
+.sz-page-head h1 { font-size: 34px; font-weight: 600; }
+.sz-page-head p { font-size: 14px; color: var(--ink-soft); margin-top: 6px; }
+
+/* Sidebar */
+.sz-sidebar {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--sz-radius); padding: 22px;
+}
+.sz-sidebar-title { display: flex; align-items: center; gap: 9px; font-weight: 700; font-size: 15px; }
+.sz-sidebar-title .ic {
+  width: 30px; height: 30px; border-radius: 9px; background: var(--violet-tint); color: var(--violet);
+  display: flex; align-items: center; justify-content: center;
+}
+.sz-clear-all { font-size: 12px; color: var(--violet); font-weight: 600; background: none; border: none; cursor: pointer; font-family: inherit; }
+.sz-filter-group { margin-bottom: 22px; }
+.sz-filter-group:last-child { margin-bottom: 0; }
+.sz-filter-label { font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: #9A93AE; margin-bottom: 10px; }
+.sz-filter-list { display: flex; flex-direction: column; gap: 3px; }
+.sz-filter-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 9px 11px; border-radius: 10px; font-size: 14px; color: var(--ink-soft);
+  cursor: pointer; transition: background .15s ease, color .15s ease;
+  background: none; border: none; width: 100%; text-align: left; font-family: inherit; text-transform: capitalize;
+}
+.sz-filter-item:hover { background: #F5F3FA; color: var(--ink); }
+.sz-filter-item.active { background: var(--violet-tint); color: var(--violet); font-weight: 700; }
+
+/* Toolbar */
+.sz-toolbar { display: flex; gap: 14px; margin-bottom: 24px; }
+.sz-search-bar {
+  flex: 1; display: flex; align-items: center; gap: 10px; min-width: 0;
+  background: var(--card); border: 1px solid var(--line); border-radius: 100px;
+  padding: 12px 18px; font-size: 14px; color: #9A93AE;
+}
+.sz-search-bar input {
+  border: none; outline: none; background: transparent; font-size: 14px;
+  color: var(--ink); width: 100%; font-family: inherit;
+}
+.sz-search-bar .clr { background: none; border: none; color: #9A93AE; cursor: pointer; display: flex; padding: 0; }
+.sz-search-bar .clr:hover { color: var(--ink); }
+.sz-sort-select {
+  background: var(--card); border: 1px solid var(--line); border-radius: 100px;
+  padding: 12px 18px; font-size: 14px; color: var(--ink-soft); font-weight: 500;
+  font-family: inherit; cursor: pointer;
+}
+.sz-filter-btn {
+  display: flex; align-items: center; gap: 8px; position: relative;
+  background: var(--card); border: 1px solid var(--line); border-radius: 100px;
+  padding: 12px 18px; font-size: 14px; font-weight: 600; color: var(--ink-soft);
+  cursor: pointer; font-family: inherit; white-space: nowrap;
+}
+.sz-filter-btn .cnt {
+  position: absolute; top: -6px; right: -6px; width: 18px; height: 18px;
+  background: var(--violet); color: #fff; border-radius: 50%; font-size: 10px;
+  display: flex; align-items: center; justify-content: center; font-weight: 700;
+}
+
+/* Products grid */
+.sz-products-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+@media (max-width: 1100px) { .sz-products-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px)  { .sz-products-grid { grid-template-columns: 1fr; } .sz-toolbar { flex-direction: column; } }
+
+/* Card badges / extras */
+.sz-prod-badges { position: absolute; top: 10px; left: 10px; display: flex; flex-direction: column; gap: 6px; z-index: 2; }
+.sz-prod-badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 8px; font-size: 11px; font-weight: 700; line-height: 1; color: #fff; }
+.sz-prod-badge.disc { background: var(--coral); }
+.sz-prod-badge.oos { background: #5B5570; }
+.sz-prod-badge-low {
+  position: absolute; top: 10px; right: 10px; background: var(--gold); color: #241600;
+  padding: 3px 8px; border-radius: 8px; font-size: 11px; font-weight: 700; line-height: 1; z-index: 2;
+}
+.sz-prod-img.dim img { opacity: .6; filter: grayscale(30%); }
+.sz-price-old { font-size: 12.5px; color: #A79FBF; text-decoration: line-through; margin-left: 7px; font-family: 'Inter', sans-serif; font-weight: 500; }
+.sz-btn-cart.added { background: var(--mint); }
+.sz-btn-cart.added:hover { background: var(--mint); }
+
+/* Active filter chips */
+.sz-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+.sz-chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 5px 7px 5px 13px;
+  background: var(--violet-tint); border: 1px solid #DFD7F4; color: var(--violet);
+  font-size: 12.5px; font-weight: 600; border-radius: 100px; text-transform: capitalize;
+}
+.sz-chip button { background: none; border: none; color: var(--violet); cursor: pointer; display: flex; padding: 2px; border-radius: 50%; }
+.sz-chip button:hover { background: #E4DCF7; }
+
+/* Search-mode banner */
+.sz-banner {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 13px 16px; background: #EEF4FF; border: 1px solid #D6E2FF; border-radius: 14px;
+  margin-bottom: 20px; font-size: 14px; color: #2E5BBD;
+}
+.sz-banner button { color: #2E5BBD; font-weight: 700; background: none; border: none; cursor: pointer; font-family: inherit; white-space: nowrap; }
