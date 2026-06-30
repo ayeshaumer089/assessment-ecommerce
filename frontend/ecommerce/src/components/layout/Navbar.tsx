@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { ShoppingCart, User, Menu, X, ChevronDown } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'

@@ -3,7 +3,6 @@ import { ChevronDown, ChevronUp, Package } from 'lucide-react'
 import { useAllOrders, useUpdateOrderStatus } from '@/hooks/useOrders'
 import { formatCurrency, formatDate, formatOrderStatus } from '@/utils/formatters'
 import { toast } from '@/store/toastStore'
-import Badge from '@/components/ui/Badge'
 import type { Order, OrderStatus } from '@/types'
 
 const ALL_STATUSES: OrderStatus[] = ['pending', 'processing', 'shipped', 'delivered', 'cancelled']
@@ -16,14 +15,6 @@ const STATUS_SEL_CLASS: Record<OrderStatus, string> = {
   shipped:    'sz-sel-shipped',
   delivered:  'sz-sel-delivered',
   cancelled:  'sz-sel-cancelled',
-}
-
-const STATUS_BADGE_VARIANT: Record<OrderStatus, 'warning' | 'info' | 'purple' | 'success' | 'default'> = {
-  pending:    'warning',
-  processing: 'info',
-  shipped:    'purple',
-  delivered:  'success',
-  cancelled:  'default',
 }
 
 function SkeletonRows() {
