@@ -8,78 +8,78 @@ import type { Order, OrderStatus } from '@/types'
 
 const ALL_STATUSES: OrderStatus[] = ['pending', 'processing', 'shipped', 'delivered', 'cancelled']
 
-const STATUS_SELECT_BG: Record<OrderStatus, string> = {
-  pending: 'bg-amber-50',
-  processing: 'bg-blue-50',
-  shipped: 'bg-indigo-50',
-  delivered: 'bg-emerald-50',
-  cancelled: 'bg-gray-100',
+type TabFilter = 'all' | OrderStatus
+
+const STATUS_SEL_CLASS: Record<OrderStatus, string> = {
+  pending:    'sz-sel-pending',
+  processing: 'sz-sel-processing',
+  shipped:    'sz-sel-shipped',
+  delivered:  'sz-sel-delivered',
+  cancelled:  'sz-sel-cancelled',
 }
 
-type TabFilter = 'all' | OrderStatus
+const STATUS_BADGE_VARIANT: Record<OrderStatus, 'warning' | 'info' | 'purple' | 'success' | 'default'> = {
+  pending:    'warning',
+  processing: 'info',
+  shipped:    'purple',
+  delivered:  'success',
+  cancelled:  'default',
+}
 
 function SkeletonRows() {
   return (
     <>
       {Array.from({ length: 5 }).map((_, i) => (
-        <tr key={i} className="animate-pulse">
-          <td className="px-4 py-3"><div className="h-4 w-32 bg-gray-200 rounded" /></td>
-          <td className="px-4 py-3"><div className="h-4 w-24 bg-gray-200 rounded" /></td>
-          <td className="px-4 py-3"><div className="h-4 w-28 bg-gray-200 rounded" /></td>
-          <td className="px-4 py-3"><div className="h-4 w-10 bg-gray-200 rounded" /></td>
-          <td className="px-4 py-3"><div className="h-4 w-16 bg-gray-200 rounded" /></td>
-          <td className="px-4 py-3"><div className="h-7 w-28 bg-gray-200 rounded" /></td>
-          <td className="px-4 py-3"><div className="h-7 w-7 bg-gray-200 rounded" /></td>
+        <tr key={i}>
+          {Array.from({ length: 7 }).map((__, j) => (
+            <td key={j} style={{ padding: '14px 18px' }}>
+              <div style={{ height: 14, background: '#ECE8F6', borderRadius: 6 }} />
+            </td>
+          ))}
         </tr>
       ))}
     </>
   )
 }
 
-interface ExpandedRowProps {
-  order: Order
-}
-
-function ExpandedRow({ order }: ExpandedRowProps) {
+function ExpandedRow({ order }: { order: Order }) {
   return (
-    <tr className="bg-gray-50">
-      <td colSpan={7} className="px-4 py-4">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <tr className="sz-expanded-row">
+      <td colSpan={7}>
+        <div className="sz-exp-grid">
           <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Items</p>
-            <ul className="space-y-2">
+            <div className="sz-exp-label">Items</div>
+            <div className="sz-exp-items">
               {order.items.map((item, idx) => (
-                <li key={idx} className="flex items-center gap-3">
-                  <img
-                    src={item.product.image}
-                    alt={item.product.name}
-                    className="w-10 h-10 object-cover rounded-lg border border-gray-200 shrink-0"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-gray-800 truncate">{item.product.name}</p>
-                    <p className="text-xs text-gray-500">
-                      {item.quantity} x {formatCurrency(item.product.discountedPrice)}
-                    </p>
+                <div key={idx} className="exp-item">
+                  <div className="exp-thumb">
+                    <img src={item.product.image} alt={item.product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   </div>
-                  <p className="text-sm font-semibold text-gray-700 shrink-0">
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.product.name}</div>
+                    <div style={{ fontSize: 12, color: 'var(--ink-soft)', marginTop: 2 }}>
+                      {item.quantity} × {formatCurrency(item.product.discountedPrice)}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, flexShrink: 0 }}>
                     {formatCurrency(item.product.discountedPrice * item.quantity)}
-                  </p>
-                </li>
+                  </div>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
-          <div className="space-y-4">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Shipping Address</p>
-              <address className="not-italic text-sm text-gray-700 leading-relaxed">
+              <div className="sz-exp-label">Shipping Address</div>
+              <div className="sz-exp-val">
                 {order.shippingAddress.street}<br />
                 {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zipCode}<br />
                 {order.shippingAddress.country}
-              </address>
+              </div>
             </div>
             <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Payment Method</p>
-              <p className="text-sm text-gray-700">{order.paymentMethod}</p>
+              <div className="sz-exp-label">Payment Method</div>
+              <div className="sz-exp-val">{order.paymentMethod}</div>
             </div>
           </div>
         </div>
@@ -88,53 +88,53 @@ function ExpandedRow({ order }: ExpandedRowProps) {
   )
 }
 
-interface OrderRowProps {
+function OrderRow({
+  order,
+  isExpanded,
+  onToggle,
+  isPending,
+  onStatusChange,
+}: {
   order: Order
   isExpanded: boolean
   onToggle: () => void
   isPending: boolean
   onStatusChange: (status: OrderStatus) => void
-}
-
-function OrderRow({ order, isExpanded, onToggle, isPending, onStatusChange }: OrderRowProps) {
+}) {
   return (
-    <tr className="hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0">
-      <td className="px-4 py-3">
-        <span className="font-mono text-xs text-gray-600">
-          {order.id.length > 20 ? order.id.slice(0, 20) + '…' : order.id}
-        </span>
+    <tr style={{ borderBottom: '1px solid var(--line)', transition: 'background .15s ease', cursor: 'default' }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = '#FAF9FE')}
+      onMouseLeave={(e) => (e.currentTarget.style.background = '')}
+    >
+      <td style={{ padding: '14px 18px', fontFamily: 'monospace', fontSize: 12, color: 'var(--ink-soft)' }}>
+        {order.id.length > 20 ? order.id.slice(0, 20) + '…' : order.id}
       </td>
-      <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{formatDate(order.createdAt)}</td>
-      <td className="px-4 py-3 text-sm text-gray-700">Customer #{order.userId}</td>
-      <td className="px-4 py-3 text-sm text-gray-600">{order.items.length}</td>
-      <td className="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">
+      <td style={{ padding: '14px 18px', fontSize: 13.5, color: 'var(--ink-soft)', whiteSpace: 'nowrap' }}>
+        {formatDate(order.createdAt)}
+      </td>
+      <td style={{ padding: '14px 18px', fontSize: 13.5, color: 'var(--ink)' }}>
+        Customer #{order.userId}
+      </td>
+      <td style={{ padding: '14px 18px', fontSize: 13.5, color: 'var(--ink-soft)' }}>
+        {order.items.length}
+      </td>
+      <td style={{ padding: '14px 18px', fontSize: 14, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap' }}>
         {formatCurrency(order.total)}
       </td>
-      <td className="px-4 py-3">
+      <td style={{ padding: '14px 18px' }}>
         <select
           value={order.status}
           disabled={isPending}
           onChange={(e) => onStatusChange(e.target.value as OrderStatus)}
-          className={[
-            'text-xs font-medium rounded-lg border border-gray-200 px-2 py-1.5 outline-none',
-            'focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1',
-            'disabled:opacity-60 disabled:cursor-not-allowed transition-colors cursor-pointer',
-            STATUS_SELECT_BG[order.status],
-          ].join(' ')}
+          className={`sz-status-select ${STATUS_SEL_CLASS[order.status]}`}
         >
           {ALL_STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {formatOrderStatus(s)}
-            </option>
+            <option key={s} value={s}>{formatOrderStatus(s)}</option>
           ))}
         </select>
       </td>
-      <td className="px-4 py-3">
-        <button
-          onClick={onToggle}
-          className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-          aria-label={isExpanded ? 'Collapse row' : 'Expand row'}
-        >
+      <td style={{ padding: '14px 18px', textAlign: 'right' }}>
+        <button className="sz-expand-btn" onClick={onToggle} aria-label={isExpanded ? 'Collapse' : 'Expand'}>
           {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </button>
       </td>
@@ -145,14 +145,12 @@ function OrderRow({ order, isExpanded, onToggle, isPending, onStatusChange }: Or
 export default function AdminOrdersPage() {
   const { data: orders = [], isLoading } = useAllOrders()
   const { mutate: updateStatus, isPending } = useUpdateOrderStatus()
-  const [activeTab, setActiveTab] = useState<TabFilter>('all')
+  const [activeTab,  setActiveTab]  = useState<TabFilter>('all')
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const tabCounts = {
     all: orders.length,
-    ...Object.fromEntries(
-      ALL_STATUSES.map((s) => [s, orders.filter((o) => o.status === s).length])
-    ),
+    ...Object.fromEntries(ALL_STATUSES.map((s) => [s, orders.filter((o) => o.status === s).length])),
   } as Record<TabFilter, number>
 
   const filtered = activeTab === 'all' ? orders : orders.filter((o) => o.status === activeTab)
@@ -167,68 +165,47 @@ export default function AdminOrdersPage() {
     updateStatus(
       { id: order.id, status },
       {
-        onSuccess: () => toast.success(`Order status updated to ${formatOrderStatus(status)}`),
-        onError: () => toast.error('Failed to update order status'),
+        onSuccess: () => toast.success(`Order updated to ${formatOrderStatus(status)}`),
+        onError:   () => toast.error('Failed to update order status'),
       },
     )
   }
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center gap-3">
-        <h1 className="text-2xl font-bold text-gray-900">Orders</h1>
-        <Badge label={String(orders.length)} variant="primary" />
+    <div className="sz-admin">
+      <div className="sz-head-with-badge">
+        <h1>Orders</h1>
+        <span className="sz-total-badge">{orders.length}</span>
       </div>
 
-      <div className="inline-flex items-center gap-1 bg-gray-100 rounded-xl p-1">
+      <div className="sz-tabs">
         {tabs.map(({ key, label }) => (
           <button
             key={key}
+            className={`sz-tab${activeTab === key ? ' active' : ''}`}
             onClick={() => setActiveTab(key)}
-            className={[
-              'px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-150 whitespace-nowrap',
-              activeTab === key
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700',
-            ].join(' ')}
           >
             {label}
-            <span
-              className={[
-                'ml-1.5 inline-flex items-center justify-center text-[11px] font-semibold rounded-full px-1.5 py-0.5',
-                activeTab === key ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-200 text-gray-500',
-              ].join(' ')}
-            >
-              {tabCounts[key]}
-            </span>
+            <span className="count">{tabCounts[key]}</span>
           </button>
         ))}
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-100">
+      <div className="sz-table-panel">
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Order ID
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Date
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Customer
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Items
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Total
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Status
-                </th>
-                <th className="px-4 py-3 w-10" />
+                {['Order ID', 'Date', 'Customer', 'Items', 'Total', 'Status', ''].map((h, i) => (
+                  <th key={i} style={{
+                    textAlign: i === 6 ? 'right' : 'left',
+                    fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+                    color: '#9A93AE', padding: '14px 18px', borderBottom: '1px solid var(--line)',
+                    background: '#FBFAFD', whiteSpace: 'nowrap',
+                  }}>
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -236,10 +213,10 @@ export default function AdminOrdersPage() {
                 <SkeletonRows />
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-16 text-center">
-                    <div className="flex flex-col items-center gap-3 text-gray-400">
-                      <Package size={36} strokeWidth={1.5} />
-                      <p className="text-sm font-medium">No orders found</p>
+                  <td colSpan={7} style={{ padding: 0 }}>
+                    <div className="sz-empty-state">
+                      <div className="sz-empty-ic"><Package size={28} /></div>
+                      <div className="sz-empty-text">No orders found</div>
                     </div>
                   </td>
                 </tr>
@@ -255,7 +232,7 @@ export default function AdminOrdersPage() {
                       onStatusChange={(status) => handleStatusChange(order, status)}
                     />
                     {expandedId === order.id && (
-                      <ExpandedRow key={`${order.id}-expanded`} order={order} />
+                      <ExpandedRow key={`${order.id}-exp`} order={order} />
                     )}
                   </>
                 ))

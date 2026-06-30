@@ -101,8 +101,8 @@ export const orderService = {
 
   // Admin functions
   async getAllOrders(): Promise<Order[]> {
-    const { data } = await api.get<{ data: Order[]; total: number }>('/orders/all')
-    return data.data.map(mapOrder)
+    const { data } = await api.get<Order[]>('/orders/all')
+    return data.map(mapOrder)
   },
 
   async updateOrderStatus(

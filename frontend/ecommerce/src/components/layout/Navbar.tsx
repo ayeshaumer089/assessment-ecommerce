@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
-import { ShoppingCart, User, Menu, X, ChevronDown, Search } from 'lucide-react'
+import { ShoppingCart, User, Menu, X, ChevronDown } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useCartStore } from '@/store/cartStore'
 import { ROUTES } from '@/constants/routes'
@@ -90,13 +90,6 @@ export default function Navbar() {
 
             {/* Right actions */}
             <div className="flex items-center gap-2">
-              {/* Search — desktop */}
-              <button className="hidden md:flex items-center gap-2 px-3 py-2 text-sm text-gray-400 bg-gray-50 border border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-100 transition-colors">
-                <Search size={14} />
-                <span>Search…</span>
-                <kbd className="ml-2 text-xs bg-white border border-gray-200 rounded px-1.5 py-0.5">⌘K</kbd>
-              </button>
-
               {/* Cart */}
               <Link
                 to={ROUTES.CUSTOMER.CART}

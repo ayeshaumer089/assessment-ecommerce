@@ -8,7 +8,7 @@ import PageLoader from './PageLoader'
  * intended destination so the user lands there after signing in.
  */
 export default function PrivateRoute() {
-  const { isAuthenticated, isLoading } = useAuth()
+  const { isAuthenticated, isLoading, user } = useAuth()
   const location = useLocation()
 
   if (isLoading) return <PageLoader />
@@ -21,6 +21,10 @@ export default function PrivateRoute() {
         replace
       />
     )
+  }
+
+  if (user?.role === 'admin') {
+    return <Navigate to={ROUTES.ADMIN.DASHBOARD} replace />
   }
 
   return <Outlet />

@@ -11,13 +11,13 @@ import Button from '@/components/ui/Button'
 import PageLoader from '@/components/common/PageLoader'
 
 const schema = z.object({
-  username: z.string().min(1, 'Username is required'),
+  email: z.string().email('Enter a valid email').min(1, 'Email is required'),
   password: z.string().min(1, 'Password is required'),
 })
 
 type FormValues = z.infer<typeof schema>
 
-const DEMO = { username: 'emilys', password: 'emilyspass' }
+const DEMO = { email: 'admin@example.com', password: 'Admin123!' }
 
 export default function AdminLoginPage() {
   const navigate = useNavigate()
@@ -51,7 +51,7 @@ export default function AdminLoginPage() {
   }
 
   const fillDemo = () => {
-    setValue('username', DEMO.username)
+    setValue('email', DEMO.email)
     setValue('password', DEMO.password)
   }
 
@@ -88,29 +88,29 @@ export default function AdminLoginPage() {
               </div>
             )}
 
-            {/* Username */}
+            {/* Email */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-slate-300">Username</label>
+              <label className="text-sm font-medium text-slate-300">Email</label>
               <div className="relative flex items-center">
                 <User size={15} className="absolute left-3 text-slate-500 pointer-events-none" />
                 <input
-                  type="text"
-                  autoComplete="username"
+                  type="email"
+                  autoComplete="email"
                   autoFocus
-                  placeholder="admin username"
-                  {...register('username')}
+                  placeholder="admin@example.com"
+                  {...register('email')}
                   className={[
                     'block w-full rounded-xl border pl-9 pr-3.5 py-2.5 text-sm text-white',
                     'bg-slate-700 placeholder:text-slate-500',
                     'outline-none transition-all duration-150 focus:ring-2 focus:ring-offset-0 focus:ring-offset-slate-800',
-                    errors.username
+                    errors.email
                       ? 'border-red-500/60 focus:border-red-400 focus:ring-red-500/20'
                       : 'border-slate-600 focus:border-indigo-500 focus:ring-indigo-500/20',
                   ].join(' ')}
                 />
               </div>
-              {errors.username && (
-                <p className="text-xs text-red-400">{errors.username.message}</p>
+              {errors.email && (
+                <p className="text-xs text-red-400">{errors.email.message}</p>
               )}
             </div>
 
@@ -163,8 +163,8 @@ export default function AdminLoginPage() {
               Demo Credentials
             </p>
             <div className="grid grid-cols-2 gap-1.5 text-xs text-slate-300 mb-3">
-              <span className="text-slate-500">Username:</span>
-              <span className="font-mono">{DEMO.username}</span>
+              <span className="text-slate-500">Email:</span>
+              <span className="font-mono">{DEMO.email}</span>
               <span className="text-slate-500">Password:</span>
               <span className="font-mono">{DEMO.password}</span>
             </div>

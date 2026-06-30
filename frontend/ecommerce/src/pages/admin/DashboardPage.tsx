@@ -1,16 +1,7 @@
 import { useMemo } from 'react'
 import {
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  Legend,
-  BarChart,
-  Bar,
-  CartesianGrid,
-  XAxis,
-  YAxis,
+  ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend,
+  BarChart, Bar, CartesianGrid, XAxis, YAxis,
 } from 'recharts'
 import { TrendingUp, ShoppingBag, Package, BarChart3 } from 'lucide-react'
 import { useAllOrders } from '@/hooks/useOrders'
@@ -19,51 +10,29 @@ import Badge from '@/components/ui/Badge'
 import type { OrderStatus } from '@/types'
 
 const STATUS_COLORS: Record<OrderStatus, string> = {
-  pending: '#f59e0b',
-  processing: '#3b82f6',
-  shipped: '#6366f1',
-  delivered: '#10b981',
-  cancelled: '#6b7280',
+  pending:    '#E8A93B',
+  processing: '#2E84E0',
+  shipped:    '#5B3DF6',
+  delivered:  '#1FAE7E',
+  cancelled:  '#9C96AE',
 }
 
 const STATUS_BADGE_VARIANT: Record<OrderStatus, 'warning' | 'info' | 'purple' | 'success' | 'default'> = {
-  pending: 'warning',
+  pending:    'warning',
   processing: 'info',
-  shipped: 'purple',
-  delivered: 'success',
-  cancelled: 'default',
+  shipped:    'purple',
+  delivered:  'success',
+  cancelled:  'default',
 }
 
-function StatCardSkeleton() {
+function SkeletonCard() {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 animate-pulse">
-      <div className="flex items-center justify-between mb-4">
-        <div className="h-4 w-24 bg-gray-200 rounded" />
-        <div className="w-10 h-10 bg-gray-200 rounded-xl" />
+    <div className="sz-stat-card" style={{ animation: 'fade-in .3s ease' }}>
+      <div className="sz-stat-top">
+        <div style={{ height: 14, width: 100, background: '#ECE8F6', borderRadius: 6 }} />
+        <div style={{ width: 38, height: 38, borderRadius: 11, background: '#ECE8F6' }} />
       </div>
-      <div className="h-7 w-32 bg-gray-200 rounded" />
-    </div>
-  )
-}
-
-function ChartSkeleton() {
-  return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 animate-pulse">
-      <div className="h-5 w-40 bg-gray-200 rounded mb-4" />
-      <div className="h-60 bg-gray-100 rounded-xl" />
-    </div>
-  )
-}
-
-function TableSkeleton() {
-  return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 animate-pulse">
-      <div className="h-5 w-32 bg-gray-200 rounded mb-4" />
-      <div className="space-y-3">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="h-10 bg-gray-100 rounded" />
-        ))}
-      </div>
+      <div style={{ height: 28, width: 120, background: '#ECE8F6', borderRadius: 8 }} />
     </div>
   )
 }
@@ -72,200 +41,197 @@ export default function DashboardPage() {
   const { data: orders = [], isLoading } = useAllOrders()
 
   const stats = useMemo(() => {
-    const totalSales = orders.reduce((sum, o) => sum + o.total, 0)
-    const totalOrders = orders.length
-    const activeOrders = orders.filter(
-      (o) => o.status === 'pending' || o.status === 'processing' || o.status === 'shipped'
-    ).length
+    const totalSales    = orders.reduce((sum, o) => sum + o.total, 0)
+    const totalOrders   = orders.length
+    const activeOrders  = orders.filter((o) => ['pending', 'processing', 'shipped'].includes(o.status)).length
     const avgOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0
     return { totalSales, totalOrders, activeOrders, avgOrderValue }
   }, [orders])
 
   const statusChartData = useMemo(() => {
-    const counts: Record<OrderStatus, number> = {
-      pending: 0,
-      processing: 0,
-      shipped: 0,
-      delivered: 0,
-      cancelled: 0,
-    }
-    for (const order of orders) {
-      counts[order.status] = (counts[order.status] ?? 0) + 1
-    }
+    const counts: Record<OrderStatus, number> = { pending: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0 }
+    for (const order of orders) counts[order.status] = (counts[order.status] ?? 0) + 1
     return (Object.keys(counts) as OrderStatus[]).map((status) => ({
-      name: formatOrderStatus(status),
-      value: counts[status],
-      color: STATUS_COLORS[status],
+      name: formatOrderStatus(status), value: counts[status], color: STATUS_COLORS[status],
     }))
   }, [orders])
 
   const topProductsData = useMemo(() => {
     const revenueMap = new Map<string, number>()
-    for (const order of orders) {
+    for (const order of orders)
       for (const item of order.items) {
         const key = item.product.name
-        const revenue = item.product.discountedPrice * item.quantity
-        revenueMap.set(key, (revenueMap.get(key) ?? 0) + revenue)
+        revenueMap.set(key, (revenueMap.get(key) ?? 0) + item.product.discountedPrice * item.quantity)
       }
-    }
     return Array.from(revenueMap.entries())
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
-      .map(([name, revenue]) => ({
-        name: name.length > 18 ? name.slice(0, 18) + '…' : name,
-        revenue,
-      }))
+      .map(([name, revenue]) => ({ name: name.length > 18 ? name.slice(0, 18) + '…' : name, revenue }))
   }, [orders])
 
   const recentOrders = useMemo(
-    () =>
-      [...orders]
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .slice(0, 5),
-    [orders]
+    () => [...orders].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5),
+    [orders],
   )
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)}
+      <div className="sz-admin">
+        <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: 30, fontWeight: 600, letterSpacing: '-0.01em', marginBottom: 26, color: 'var(--ink)' }}>Dashboard</h1>
+        <div className="sz-stat-grid">
+          {[1, 2, 3, 4].map((i) => <SkeletonCard key={i} />)}
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <ChartSkeleton />
-          <ChartSkeleton />
+        <div className="sz-chart-row">
+          {[1, 2].map((i) => (
+            <div key={i} className="sz-panel" style={{ animation: 'fade-in .3s ease' }}>
+              <div style={{ height: 16, width: 160, background: '#ECE8F6', borderRadius: 6, marginBottom: 18 }} />
+              <div style={{ height: 260, background: '#F8F7FB', borderRadius: 14 }} />
+            </div>
+          ))}
         </div>
-        <TableSkeleton />
+        <div className="sz-table-panel">
+          <div className="sz-table-panel-head">Recent Orders</div>
+          <div style={{ padding: '0 24px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {[1, 2, 3].map((i) => <div key={i} style={{ height: 40, background: '#F8F7FB', borderRadius: 8 }} />)}
+          </div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+    <div className="sz-admin">
+      <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: 30, fontWeight: 600, letterSpacing: '-0.01em', marginBottom: 26, color: 'var(--ink)' }}>
+        Dashboard
+      </h1>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-medium text-gray-500">Total Sales</p>
-            <span className="w-10 h-10 flex items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-              <TrendingUp size={18} />
-            </span>
+      {/* Stat cards */}
+      <div className="sz-stat-grid">
+        <div className="sz-stat-card">
+          <div className="sz-stat-top">
+            <span className="sz-stat-label">Total Sales</span>
+            <span className="sz-stat-ic ic-violet"><TrendingUp size={18} /></span>
           </div>
-          <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.totalSales)}</p>
+          <div className="sz-stat-val">{formatCurrency(stats.totalSales)}</div>
         </div>
-
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-medium text-gray-500">Total Orders</p>
-            <span className="w-10 h-10 flex items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-              <ShoppingBag size={18} />
-            </span>
+        <div className="sz-stat-card">
+          <div className="sz-stat-top">
+            <span className="sz-stat-label">Total Orders</span>
+            <span className="sz-stat-ic ic-mint"><ShoppingBag size={18} /></span>
           </div>
-          <p className="text-2xl font-bold text-gray-900">{stats.totalOrders}</p>
+          <div className="sz-stat-val">{stats.totalOrders}</div>
         </div>
-
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-medium text-gray-500">Active Orders</p>
-            <span className="w-10 h-10 flex items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-              <Package size={18} />
-            </span>
+        <div className="sz-stat-card">
+          <div className="sz-stat-top">
+            <span className="sz-stat-label">Active Orders</span>
+            <span className="sz-stat-ic ic-blue"><Package size={18} /></span>
           </div>
-          <p className="text-2xl font-bold text-gray-900">{stats.activeOrders}</p>
+          <div className="sz-stat-val">{stats.activeOrders}</div>
         </div>
-
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-medium text-gray-500">Avg Order Value</p>
-            <span className="w-10 h-10 flex items-center justify-center rounded-xl bg-purple-50 text-purple-600">
-              <BarChart3 size={18} />
-            </span>
+        <div className="sz-stat-card">
+          <div className="sz-stat-top">
+            <span className="sz-stat-label">Avg Order Value</span>
+            <span className="sz-stat-ic ic-gold"><BarChart3 size={18} /></span>
           </div>
-          <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.avgOrderValue)}</p>
+          <div className="sz-stat-val">{formatCurrency(stats.avgOrderValue)}</div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <h2 className="text-sm font-semibold text-gray-700 mb-4">Order Status Distribution</h2>
-          <ResponsiveContainer width="100%" height={260}>
-            <PieChart>
-              <Pie
-                data={statusChartData}
-                dataKey="value"
-                innerRadius={50}
-                outerRadius={90}
-              >
-                {statusChartData.map((entry, index) => (
-                  <Cell key={index} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(value) => [Number(value), 'Orders']} />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
+      {/* Charts */}
+      <div className="sz-chart-row">
+        <div className="sz-panel">
+          <h3>Order Status Distribution</h3>
+          {orders.length === 0 ? (
+            <div style={{ height: 260, border: '1.5px dashed var(--line)', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8, color: '#B4AECB', fontSize: 13.5, fontWeight: 500, background: '#FBFAFD' }}>
+              <span style={{ fontSize: 26 }}>◔</span> No order data yet
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={260}>
+              <PieChart>
+                <Pie data={statusChartData} dataKey="value" innerRadius={50} outerRadius={90}>
+                  {statusChartData.map((entry, index) => (
+                    <Cell key={index} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => [Number(value), 'Orders']} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
+          <div className="sz-legend">
+            {[
+              { label: 'Cancelled',  color: '#9C96AE' },
+              { label: 'Delivered',  color: '#1FAE7E' },
+              { label: 'Pending',    color: '#E8A93B' },
+              { label: 'Processing', color: '#2E84E0' },
+              { label: 'Shipped',    color: '#5B3DF6' },
+            ].map(({ label, color }) => (
+              <span key={label}>
+                <span className="sz-ldot" style={{ background: color }} />
+                {label}
+              </span>
+            ))}
+          </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <h2 className="text-sm font-semibold text-gray-700 mb-4">Top 5 Products by Revenue</h2>
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart layout="vertical" data={topProductsData} margin={{ left: 0, right: 16, top: 4, bottom: 4 }}>
-              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-              <XAxis type="number" tickFormatter={(v: number) => formatCurrency(v)} tick={{ fontSize: 11 }} />
-              <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11 }} />
-              <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Revenue']} />
-              <Bar dataKey="revenue" fill="#6366f1" radius={[0, 4, 4, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="sz-panel">
+          <h3>Top 5 Products by Revenue</h3>
+          {topProductsData.length === 0 ? (
+            <div style={{ height: 260, border: '1.5px dashed var(--line)', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8, color: '#B4AECB', fontSize: 13.5, fontWeight: 500, background: '#FBFAFD' }}>
+              <span style={{ fontSize: 26 }}>▤</span> No revenue data yet
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart layout="vertical" data={topProductsData} margin={{ left: 0, right: 16, top: 4, bottom: 4 }}>
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                <XAxis type="number" tickFormatter={(v: number) => formatCurrency(v)} tick={{ fontSize: 11 }} />
+                <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11 }} />
+                <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Revenue']} />
+                <Bar dataKey="revenue" fill="#5B3DF6" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-        <h2 className="text-sm font-semibold text-gray-700 mb-4">Recent Orders</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100">
-                <th className="text-left pb-2 font-medium text-gray-500">Order ID</th>
-                <th className="text-left pb-2 font-medium text-gray-500">Date</th>
-                <th className="text-left pb-2 font-medium text-gray-500">Status</th>
-                <th className="text-right pb-2 font-medium text-gray-500">Total</th>
+      {/* Recent orders table */}
+      <div className="sz-table-panel">
+        <div className="sz-table-panel-head">Recent Orders</div>
+        <table className="sz-orders-table">
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Date</th>
+              <th>Status</th>
+              <th style={{ textAlign: 'right' }}>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {recentOrders.length === 0 ? (
+              <tr>
+                <td colSpan={4} style={{ textAlign: 'center', padding: '48px 24px', color: '#B4AECB' }}>
+                  No orders yet
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {recentOrders.map((order) => (
-                <tr key={order.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="py-2.5 pr-4">
-                    <span className="font-mono text-xs text-gray-600">
-                      {order.id.length > 20 ? order.id.slice(0, 20) + '…' : order.id}
-                    </span>
-                  </td>
-                  <td className="py-2.5 pr-4 text-gray-600">{formatDate(order.createdAt)}</td>
-                  <td className="py-2.5 pr-4">
-                    <Badge
-                      label={formatOrderStatus(order.status)}
-                      variant={STATUS_BADGE_VARIANT[order.status]}
-                      size="sm"
-                      dot
-                    />
-                  </td>
-                  <td className="py-2.5 text-right font-medium text-gray-900">
-                    {formatCurrency(order.total)}
-                  </td>
-                </tr>
-              ))}
-              {recentOrders.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="py-8 text-center text-gray-400">
-                    No orders yet
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+            ) : recentOrders.map((order) => (
+              <tr key={order.id}>
+                <td style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--ink-soft)' }}>
+                  {order.id.length > 20 ? order.id.slice(0, 20) + '…' : order.id}
+                </td>
+                <td style={{ color: 'var(--ink-soft)' }}>{formatDate(order.createdAt)}</td>
+                <td>
+                  <Badge
+                    label={formatOrderStatus(order.status)}
+                    variant={STATUS_BADGE_VARIANT[order.status]}
+                    size="sm"
+                    dot
+                  />
+                </td>
+                <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatCurrency(order.total)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   )
