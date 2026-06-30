@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import {
   Search, SlidersHorizontal, X, ChevronLeft, ChevronRight, LayoutGrid,
 } from 'lucide-react'
-import { useProducts, useSearchProducts, useCategories } from '@/hooks/useProducts'
+import { useProducts, useCategories } from '@/hooks/useProducts'
 import { useCart } from '@/hooks/useCart'
 import { useDebounce } from '@/hooks/useDebounce'
 import EmptyState from '@/components/ui/EmptyState'
@@ -302,37 +302,32 @@ export default function ProductList() {
 
   const { min: priceMin, max: priceMax } = PRICE_RANGES[Number(priceRange)] ?? PRICE_RANGES[0]
 
-  // Build API params
+  // Build API params — search, category, sort and pagination all go to
+  // the same backend call so they compose correctly (search + category etc.)
   const apiFilters: ProductFilters = {
     page,
     limit: PAGE_SIZE,
     category: category || undefined,
+    search: isSearching ? debouncedSearch : undefined,
     ...toApiSort(sort),
   }
 
-  // Data fetching — switch between browse and search mode
   const browseQuery     = useProducts(apiFilters)
-  const searchQuery     = useSearchProducts(debouncedSearch)
   const categoriesQuery = useCategories()
 
   const categoriesData = categoriesQuery.data ?? []
   const catsLoading    = categoriesQuery.isLoading
 
-  const activeQuery = isSearching ? searchQuery : browseQuery
-  const { data, isLoading, isError, refetch } = activeQuery
+  const { data, isLoading, isError, refetch } = browseQuery
 
-  // Apply client-side price + newest sort
+  // Apply client-side price filter after the server response
   const filteredItems = useMemo(
     () => applyClientFilters(data?.items ?? [], priceMin, priceMax),
     [data?.items, priceMin, priceMax],
   )
 
-  const totalPages = isSearching
-    ? Math.ceil(filteredItems.length / PAGE_SIZE)
-    : data?.totalPages ?? 1
-  const displayedItems = isSearching
-    ? filteredItems.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-    : filteredItems
+  const totalPages    = data?.totalPages ?? 1
+  const displayedItems = filteredItems
 
   // URL param helpers
   const setParam = (key: string, value: string) => {
@@ -449,7 +444,7 @@ export default function ProductList() {
             <div className="sz-banner">
               <p>
                 Results for <span style={{ fontWeight: 700 }}>"{debouncedSearch}"</span>
-                {filteredItems.length > 0 && ` — ${filteredItems.length} found`}
+                {(data?.total ?? 0) > 0 && ` — ${data!.total} found`}
               </p>
               <button onClick={() => setParam('q', '')}>Clear search</button>
             </div>
@@ -499,7 +494,7 @@ export default function ProductList() {
             <Pagination
               page={page}
               totalPages={totalPages}
-              total={isSearching ? filteredItems.length : (data?.total ?? 0)}
+              total={data?.total ?? 0}
               limit={PAGE_SIZE}
               onPage={(p) => setParam('page', String(p))}
             />

@@ -37,11 +37,18 @@ export class ProductsService {
     const filter: FilterQuery<ProductDocument> = {};
 
     if (search) {
-      filter.$text = { $search: search };
+      const re = { $regex: search, $options: 'i' };
+      filter.$or = [
+        { name: re },
+        { description: re },
+        { category: re },
+        { brand: re },
+        { tags: re },
+      ];
     }
 
     if (category) {
-      filter.category = category;
+      filter.category = { $regex: `^${category}$`, $options: 'i' };
     }
 
     if (minPrice !== undefined || maxPrice !== undefined) {
@@ -52,11 +59,9 @@ export class ProductsService {
 
     const skip = (page - 1) * limit;
 
-    // Text search: rank by relevance score first, then fall back to sortBy.
-    // Regular queries: sort by the requested field.
-    const sort: Record<string, SortOrder | { $meta: string }> = search
-      ? { score: { $meta: 'textScore' }, [sortBy]: sortOrder as SortOrder }
-      : { [sortBy]: sortOrder as SortOrder };
+    const sort: Record<string, SortOrder> = {
+      [sortBy]: sortOrder as SortOrder,
+    };
 
     const [data, total] = await Promise.all([
       this.productModel.find(filter).sort(sort).skip(skip).limit(limit).exec(),
