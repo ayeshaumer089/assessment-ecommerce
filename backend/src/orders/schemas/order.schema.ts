@@ -19,6 +19,9 @@ class OrderItem {
   })
   name: string;
 
+  @Prop({ trim: true })
+  image?: string; // snapshot of the product image at order time
+
   @Prop({
     required: true,
     min: [1, 'Quantity must be at least 1'],
@@ -30,6 +33,34 @@ class OrderItem {
     min: [0, 'Price cannot be negative'],
   })
   price: number; // snapshot of price at order time
+}
+
+// ── Embedded shipping address ─────────────────────────────────────────────────
+@Schema({ _id: false })
+class ShippingAddress {
+  @Prop({ required: true, trim: true })
+  fullName: string;
+
+  @Prop({ trim: true })
+  phone?: string;
+
+  @Prop({ required: true, trim: true })
+  street: string;
+
+  @Prop({ trim: true })
+  apt?: string;
+
+  @Prop({ required: true, trim: true })
+  city: string;
+
+  @Prop({ required: true, trim: true })
+  state: string;
+
+  @Prop({ required: true, trim: true })
+  zipCode: string;
+
+  @Prop({ required: true, trim: true })
+  country: string;
 }
 
 export type OrderDocument = HydratedDocument<Order>;
@@ -55,9 +86,29 @@ export class Order {
 
   @Prop({
     required: true,
+    min: [0, 'Subtotal cannot be negative'],
+    default: 0,
+  })
+  subtotal: number;
+
+  @Prop({
+    required: true,
+    min: [0, 'Shipping cost cannot be negative'],
+    default: 0,
+  })
+  shippingCost: number;
+
+  @Prop({
+    required: true,
     min: [0, 'Total amount cannot be negative'],
   })
   totalAmount: number;
+
+  @Prop({ type: ShippingAddress })
+  shippingAddress?: ShippingAddress;
+
+  @Prop({ trim: true, default: 'Card (mock)' })
+  paymentMethod: string;
 
   @Prop({
     type: String,

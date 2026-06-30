@@ -8,6 +8,7 @@ import { Order, OrderDocument } from '../orders/schemas/order.schema';
 import { Role } from '../users/enums/role.enum';
 import { OrderStatus } from '../orders/enums/order-status.enum';
 import { PaymentStatus } from '../orders/enums/payment-status.enum';
+import { calculateShipping } from '../common/constants/shipping';
 
 @Injectable()
 export class SeedService {
@@ -107,39 +108,89 @@ export class SeedService {
 
   private async seedOrders(customer: UserDocument, products: ProductDocument[]): Promise<void> {
     this.logger.log('Seeding orders...');
-    
-    const orders = [
+
+    const shippingAddress = {
+      fullName: 'Customer User',
+      phone: '+1 555 0100',
+      street: '742 Evergreen Terrace',
+      city: 'Springfield',
+      state: 'IL',
+      zipCode: '62704',
+      country: 'United States',
+    };
+
+    // Each entry: which products and quantities make up the order.
+    const lineSpecs: Array<{
+      lines: Array<{ product: ProductDocument; quantity: number }>;
+      status: OrderStatus;
+      paymentStatus: PaymentStatus;
+    }> = [
       {
-        userId: customer._id,
-        items: [
-          { productId: products[0]._id, name: products[0].name, quantity: 1, price: products[0].price },
-          { productId: products[1]._id, name: products[1].name, quantity: 1, price: products[1].price },
+        lines: [
+          { product: products[0], quantity: 1 },
+          { product: products[1], quantity: 1 },
         ],
-        totalAmount: products[0].price + products[1].price,
         status: OrderStatus.DELIVERED,
         paymentStatus: PaymentStatus.PAID,
       },
       {
-        userId: customer._id,
-        items: [
-          { productId: products[3]._id, name: products[3].name, quantity: 2, price: products[3].price },
-        ],
-        totalAmount: products[3].price * 2,
+        lines: [{ product: products[3], quantity: 2 }],
         status: OrderStatus.SHIPPED,
         paymentStatus: PaymentStatus.PAID,
       },
       {
-        userId: customer._id,
-        items: [
-          { productId: products[6]._id, name: products[6].name, quantity: 1, price: products[6].price },
-          { productId: products[8]._id, name: products[8].name, quantity: 1, price: products[8].price },
+        lines: [
+          { product: products[6], quantity: 1 },
+          { product: products[8], quantity: 1 },
         ],
-        totalAmount: products[6].price + products[8].price,
         status: OrderStatus.PENDING,
         paymentStatus: PaymentStatus.PENDING,
       },
     ];
 
+    const orders = lineSpecs.map((spec) => {
+      const items = spec.lines.map(({ product, quantity }) => ({
+        productId: product._id,
+        name: product.name,
+        image: product.image,
+        quantity,
+        price: product.price,
+      }));
+      const subtotal = round(
+        spec.lines.reduce((sum, l) => sum + l.product.price * l.quantity, 0),
+      );
+      const shippingCost = calculateShipping(subtotal);
+      return {
+        userId: customer._id,
+        items,
+        subtotal,
+        shippingCost,
+        totalAmount: round(subtotal + shippingCost),
+        shippingAddress,
+        paymentMethod: 'Card (mock)',
+        status: spec.status,
+        paymentStatus: spec.paymentStatus,
+      };
+    });
+
     await this.orderModel.insertMany(orders);
+
+    // Reflect seeded orders in inventory so stock numbers stay consistent.
+    const decrements = new Map<string, number>();
+    for (const spec of lineSpecs) {
+      for (const { product, quantity } of spec.lines) {
+        const id = String(product._id);
+        decrements.set(id, (decrements.get(id) ?? 0) + quantity);
+      }
+    }
+    await Promise.all(
+      [...decrements.entries()].map(([id, qty]) =>
+        this.productModel.updateOne({ _id: id }, { $inc: { stock: -qty } }),
+      ),
+    );
   }
+}
+
+function round(n: number, decimals = 2): number {
+  return parseFloat(n.toFixed(decimals));
 }

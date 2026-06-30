@@ -1,6 +1,11 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 import type { User } from '@/types'
 import { authService, type LoginCredentials, type SignupPayload } from '@/services/authService'
+import { useCartStore } from '@/store/cartStore'
+
+function resetCart() {
+  useCartStore.setState({ cart: null, items: [] })
+}
 
 interface AuthContextValue {
   user: User | null
@@ -42,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const handler = () => {
       setToken(null)
       setUser(null)
+      resetCart()
     }
     window.addEventListener('auth:logout', handler)
     return () => window.removeEventListener('auth:logout', handler)
@@ -63,6 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await authService.logout()
     setToken(null)
     setUser(null)
+    resetCart()
   }
 
   return (

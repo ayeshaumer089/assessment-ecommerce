@@ -42,8 +42,7 @@ export class Cart {
 
 export const CartSchema = SchemaFactory.createForClass(Cart);
 
-// ── Indexes ──────────────────────────────────────────────────────────────────
-CartSchema.index({ userId: 1 }, { unique: true });
+// Note: the unique index on `userId` is created by `unique: true` on the prop.
 
 // ── Virtuals ─────────────────────────────────────────────────────────────────
 CartSchema.virtual('totalItems').get(function (this: CartDocument) {

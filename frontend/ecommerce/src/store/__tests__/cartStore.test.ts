@@ -1,6 +1,19 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { useCartStore } from '@/store/cartStore'
-import type { Product } from '@/types'
+import { cartService } from '@/services/cartService'
+import type { Cart, Product } from '@/types'
+
+// The cart is server-backed: the store delegates mutations to cartService and
+// stores whatever the API returns. We mock the service to test that wiring.
+vi.mock('@/services/cartService', () => ({
+  cartService: {
+    getCart: vi.fn(),
+    addItem: vi.fn(),
+    updateItem: vi.fn(),
+    removeItem: vi.fn(),
+    clearCart: vi.fn(),
+  },
+}))
 
 function makeProduct(overrides: Partial<Product> = {}): Product {
   return {
@@ -8,14 +21,14 @@ function makeProduct(overrides: Partial<Product> = {}): Product {
     name: 'Widget',
     description: '',
     price: 100,
-    discountPercentage: 10,
-    discountedPrice: 90,
+    discountPercentage: 0,
+    discountedPrice: 100,
     stock: 20,
     category: 'electronics',
     brand: '',
     sku: '',
     tags: [],
-    rating: 4,
+    rating: 0,
     reviewCount: 0,
     reviews: [],
     image: '',
@@ -29,74 +42,83 @@ function makeProduct(overrides: Partial<Product> = {}): Product {
   }
 }
 
+function cartWith(items: { product: Product; quantity: number }[]): Cart {
+  return {
+    userId: 'u1',
+    items: items.map((i) => ({
+      productId: i.product.id,
+      product: i.product,
+      quantity: i.quantity,
+      price: i.product.price,
+    })),
+  }
+}
+
 describe('cartStore', () => {
   beforeEach(() => {
-    useCartStore.setState({ items: [] })
+    useCartStore.setState({ cart: null, items: [] })
+    vi.clearAllMocks()
   })
 
   it('starts with an empty cart', () => {
     expect(useCartStore.getState().items).toHaveLength(0)
   })
 
-  it('adds a new item', () => {
+  it('fetchCart loads items from the server', async () => {
     const p = makeProduct()
-    useCartStore.getState().addItem(p, 2)
+    vi.mocked(cartService.getCart).mockResolvedValue(cartWith([{ product: p, quantity: 2 }]))
+
+    await useCartStore.getState().fetchCart()
+
+    expect(cartService.getCart).toHaveBeenCalled()
     expect(useCartStore.getState().items).toHaveLength(1)
     expect(useCartStore.getState().items[0].quantity).toBe(2)
   })
 
-  it('increments quantity when same product is added again', () => {
+  it('addItem delegates to the service and stores the returned cart', async () => {
     const p = makeProduct()
-    useCartStore.getState().addItem(p, 1)
-    useCartStore.getState().addItem(p, 3)
-    const { items } = useCartStore.getState()
-    expect(items).toHaveLength(1)
-    expect(items[0].quantity).toBe(4)
+    vi.mocked(cartService.addItem).mockResolvedValue(cartWith([{ product: p, quantity: 3 }]))
+
+    await useCartStore.getState().addItem(p, 3)
+
+    expect(cartService.addItem).toHaveBeenCalledWith(p.id, 3)
+    expect(useCartStore.getState().items[0].quantity).toBe(3)
   })
 
-  it('adds different products as separate items', () => {
-    useCartStore.getState().addItem(makeProduct({ id: 'A' }))
-    useCartStore.getState().addItem(makeProduct({ id: 'B' }))
-    expect(useCartStore.getState().items).toHaveLength(2)
-  })
+  it('updateQuantity with 0 removes the item via the service', async () => {
+    vi.mocked(cartService.removeItem).mockResolvedValue(cartWith([]))
 
-  it('removes an item by productId', () => {
-    const p = makeProduct()
-    useCartStore.getState().addItem(p)
-    useCartStore.getState().removeItem(p.id)
+    await useCartStore.getState().updateQuantity('1', 0)
+
+    expect(cartService.removeItem).toHaveBeenCalledWith('1')
+    expect(cartService.updateItem).not.toHaveBeenCalled()
     expect(useCartStore.getState().items).toHaveLength(0)
   })
 
-  it('updateQuantity changes quantity', () => {
-    const p = makeProduct()
-    useCartStore.getState().addItem(p, 5)
-    useCartStore.getState().updateQuantity(p.id, 2)
-    expect(useCartStore.getState().items[0].quantity).toBe(2)
-  })
+  it('clearCart empties the store', async () => {
+    useCartStore.setState({ items: cartWith([{ product: makeProduct(), quantity: 1 }]).items })
+    vi.mocked(cartService.clearCart).mockResolvedValue(undefined)
 
-  it('updateQuantity with 0 removes the item', () => {
-    const p = makeProduct()
-    useCartStore.getState().addItem(p, 5)
-    useCartStore.getState().updateQuantity(p.id, 0)
-    expect(useCartStore.getState().items).toHaveLength(0)
-  })
+    await useCartStore.getState().clearCart()
 
-  it('clearCart empties all items', () => {
-    useCartStore.getState().addItem(makeProduct({ id: 'A' }))
-    useCartStore.getState().addItem(makeProduct({ id: 'B' }))
-    useCartStore.getState().clearCart()
+    expect(cartService.clearCart).toHaveBeenCalled()
     expect(useCartStore.getState().items).toHaveLength(0)
   })
 
   it('totalItems sums quantities', () => {
-    useCartStore.getState().addItem(makeProduct({ id: 'A' }), 3)
-    useCartStore.getState().addItem(makeProduct({ id: 'B' }), 2)
+    useCartStore.setState({
+      items: cartWith([
+        { product: makeProduct({ id: 'A' }), quantity: 3 },
+        { product: makeProduct({ id: 'B' }), quantity: 2 },
+      ]).items,
+    })
     expect(useCartStore.getState().totalItems()).toBe(5)
   })
 
-  it('totalPrice sums price × quantity (original price)', () => {
-    // Uses product.price, not discountedPrice
-    useCartStore.getState().addItem(makeProduct({ price: 100 }), 2)
+  it('totalPrice sums price × quantity', () => {
+    useCartStore.setState({
+      items: cartWith([{ product: makeProduct({ price: 100 }), quantity: 2 }]).items,
+    })
     expect(useCartStore.getState().totalPrice()).toBe(200)
   })
 })

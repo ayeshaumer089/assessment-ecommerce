@@ -1,9 +1,7 @@
-import { setDefaultResultOrder } from 'node:dns';
-import { promises as dns } from 'node:dns';
+import { configureDns } from './common/utils/configure-dns';
 
-// Fix DNS resolution for MongoDB Atlas SRV records on Windows
-dns.setServers(['8.8.8.8', '8.8.4.4']);
-setDefaultResultOrder('ipv4first');
+// Only override DNS for MongoDB Atlas SRV URIs.
+configureDns();
 
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';

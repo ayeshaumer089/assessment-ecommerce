@@ -16,10 +16,9 @@ const productSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   description: z.string().min(10, 'Description must be at least 10 characters'),
   price: z.coerce.number().min(0.01, 'Price must be greater than 0'),
-  discountPercentage: z.coerce.number().min(0).max(100).default(0),
   category: z.string().min(1, 'Category is required'),
   stock: z.coerce.number().int().min(0, 'Stock cannot be negative'),
-  brand: z.string().optional(),
+  image: z.string().url('Enter a valid image URL (https://…)'),
 })
 
 type ProductFormValues  = z.infer<typeof productSchema>
@@ -29,10 +28,9 @@ interface AdminProductPayload {
   name: string
   description: string
   price: number
-  discountPercentage: number
   category: string
   stock: number
-  brand?: string
+  image: string
 }
 
 const LIMIT = 12
@@ -57,7 +55,7 @@ export default function AdminProductsPage() {
   const updateMutation = useUpdateProduct()
   const deleteMutation = useDeleteProduct()
 
-  const categories = categoriesData?.map((c) => c.name) ?? []
+  const categories = categoriesData ?? []
 
   const {
     register,
@@ -66,12 +64,11 @@ export default function AdminProductsPage() {
     formState: { errors },
   } = useForm<ProductFormInput, unknown, ProductFormValues>({
     resolver: zodResolver(productSchema),
-    defaultValues: { discountPercentage: 0 },
   })
 
   function openAdd() {
     setEditingProduct(null)
-    reset({ name: '', description: '', price: 0, discountPercentage: 0, category: '', stock: 0, brand: '' })
+    reset({ name: '', description: '', price: 0, category: '', stock: 0, image: '' })
     setFormOpen(true)
   }
 
@@ -81,10 +78,9 @@ export default function AdminProductsPage() {
       name: product.name,
       description: product.description,
       price: product.price,
-      discountPercentage: product.discountPercentage,
       category: product.category,
       stock: product.stock,
-      brand: product.brand,
+      image: product.image,
     })
     setFormOpen(true)
   }
@@ -100,10 +96,9 @@ export default function AdminProductsPage() {
       name: values.name,
       description: values.description,
       price: values.price,
-      discountPercentage: values.discountPercentage,
       category: values.category,
       stock: values.stock,
-      brand: values.brand,
+      image: values.image,
     }
     if (editingProduct) {
       updateMutation.mutate(
@@ -158,9 +153,6 @@ export default function AdminProductsPage() {
 
       <div className="flex items-center gap-2">
         <p className="text-sm text-gray-500">{total} products</p>
-        <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1 leading-none">
-          Note: Changes are session-only and reset on page refresh
-        </span>
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -282,14 +274,13 @@ export default function AdminProductsPage() {
               {...register('price')}
             />
             <Input
-              label="Discount %"
+              label="Stock"
               type="number"
-              step="0.01"
-              error={errors.discountPercentage?.message}
-              {...register('discountPercentage')}
+              error={errors.stock?.message}
+              {...register('stock')}
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             {categories.length > 0 ? (
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-gray-700">Category</label>
@@ -305,8 +296,8 @@ export default function AdminProductsPage() {
                 >
                   <option value="">Select a category</option>
                   {categories.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
+                    <option key={c.slug} value={c.slug}>
+                      {c.name}
                     </option>
                   ))}
                 </select>
@@ -326,18 +317,12 @@ export default function AdminProductsPage() {
                 {...register('category')}
               />
             )}
-            <Input
-              label="Stock"
-              type="number"
-              error={errors.stock?.message}
-              {...register('stock')}
-            />
           </div>
           <Input
-            label="Brand"
-            optional
-            error={errors.brand?.message}
-            {...register('brand')}
+            label="Image URL"
+            placeholder="https://example.com/product.jpg"
+            error={errors.image?.message}
+            {...register('image')}
           />
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-gray-700">Description</label>

@@ -1,51 +1,77 @@
 import api from './axiosInstance'
-import type { Order, OrderStatus, PaymentStatus, Product } from '@/types'
+import type { Address, Order, OrderStatus, PaymentStatus, Product } from '@/types'
+
+export interface CheckoutPayload {
+  shippingAddress: Address
+  paymentMethod: string
+}
+
+function mapAddress(data: any): Address {
+  return {
+    fullName: data?.fullName || '',
+    phone: data?.phone || '',
+    street: data?.street || '',
+    apt: data?.apt || '',
+    city: data?.city || '',
+    state: data?.state || '',
+    zipCode: data?.zipCode || '',
+    country: data?.country || '',
+  }
+}
 
 function mapOrder(data: any): Order {
-  const items = (data.items || []).map((item: any) => ({
-    ...item,
-    productId: item.productId?._id || item.productId?.id || item.productId,
-    product: {
-      id: item.productId?._id || item.productId?.id || item.productId,
-      _id: item.productId?._id || item.productId?.id,
+  const items = (data.items || []).map((item: any) => {
+    const productId =
+      item.productId?._id || item.productId?.id || item.productId || ''
+    const price = item.price ?? 0
+    return {
+      productId,
       name: item.name,
-      price: item.price,
-      description: '',
-      image: '',
-      category: '',
-      stock: 0,
-      discountPercentage: 0,
-      discountedPrice: item.price,
-      brand: '',
-      sku: '',
-      tags: [],
-      rating: 0,
-      reviewCount: 0,
-      reviews: [],
-      images: [],
-      availabilityStatus: '',
-      shippingInformation: '',
-      warrantyInformation: '',
-      returnPolicy: '',
-      createdAt: '',
-    } as Product,
-  }))
-  
+      quantity: item.quantity,
+      price,
+      product: {
+        id: productId,
+        _id: productId,
+        name: item.name,
+        price,
+        description: '',
+        image: item.image || '',
+        category: '',
+        stock: 0,
+        discountPercentage: 0,
+        discountedPrice: price,
+        brand: '',
+        sku: '',
+        tags: [],
+        rating: 0,
+        reviewCount: 0,
+        reviews: [],
+        images: item.image ? [item.image] : [],
+        availabilityStatus: '',
+        shippingInformation: '',
+        warrantyInformation: '',
+        returnPolicy: '',
+        createdAt: '',
+      } as Product,
+    }
+  })
+
+  const subtotal = data.subtotal ?? data.totalAmount ?? 0
+  const shippingCost = data.shippingCost ?? 0
+  const total = data.totalAmount ?? subtotal + shippingCost
+
   return {
     ...data,
     id: data._id || data.id,
     items,
-    total: data.totalAmount,
-    subtotal: data.totalAmount,
-    discountedTotal: data.totalAmount,
-    shippingAddress: {
-      street: '',
-      city: '',
-      state: '',
-      zipCode: '',
-      country: '',
-    },
-    paymentMethod: 'Mock Payment',
+    subtotal,
+    discountedTotal: subtotal,
+    shippingCost,
+    total,
+    totalAmount: data.totalAmount ?? total,
+    paymentStatus: data.paymentStatus ?? 'pending',
+    shippingAddress: mapAddress(data.shippingAddress),
+    paymentMethod: data.paymentMethod || 'Card (mock)',
   }
 }
 
@@ -60,8 +86,11 @@ export const orderService = {
     return mapOrder(data)
   },
 
-  async checkout(): Promise<{ order: Order; payment: any }> {
-    const { data } = await api.post<{ order: Order; payment: any }>('/orders/create', {})
+  async checkout(payload: CheckoutPayload): Promise<{ order: Order; payment: any }> {
+    const { data } = await api.post<{ order: Order; payment: any }>(
+      '/orders/create',
+      payload,
+    )
     return { order: mapOrder(data.order), payment: data.payment }
   },
 
@@ -71,12 +100,16 @@ export const orderService = {
   },
 
   // Admin functions
-  async getAllOrders(): Promise<{ data: Order[]; total: number }> {
+  async getAllOrders(): Promise<Order[]> {
     const { data } = await api.get<{ data: Order[]; total: number }>('/orders/all')
-    return { data: data.data.map(mapOrder), total: data.total }
+    return data.data.map(mapOrder)
   },
 
-  async updateOrderStatus(id: string, status: OrderStatus, paymentStatus?: PaymentStatus): Promise<Order> {
+  async updateOrderStatus(
+    id: string,
+    status: OrderStatus,
+    paymentStatus?: PaymentStatus,
+  ): Promise<Order> {
     const payload: any = { status }
     if (paymentStatus) payload.paymentStatus = paymentStatus
     const { data } = await api.patch<Order>(`/orders/${id}/status`, payload)

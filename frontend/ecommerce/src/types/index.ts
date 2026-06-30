@@ -60,11 +60,11 @@ export type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | '
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded'
 
 export interface OrderItem {
-  productId?: string
-  name?: string
+  productId: string
+  name: string
   quantity: number
-  price?: number
-  product?: Product
+  price: number
+  product: Product
 }
 
 export interface Order {
@@ -72,20 +72,24 @@ export interface Order {
   _id?: string
   userId: string
   items: OrderItem[]
-  totalAmount?: number
-  total?: number
-  subtotal?: number
-  discountedTotal?: number
+  totalAmount: number
+  total: number
+  subtotal: number
+  discountedTotal: number
+  shippingCost: number
   status: OrderStatus
-  paymentStatus?: PaymentStatus
-  shippingAddress?: Address
-  paymentMethod?: string
+  paymentStatus: PaymentStatus
+  shippingAddress: Address
+  paymentMethod: string
   createdAt: string
   updatedAt?: string
 }
 
 export interface Address {
+  fullName?: string
+  phone?: string
   street: string
+  apt?: string
   city: string
   state: string
   zipCode: string

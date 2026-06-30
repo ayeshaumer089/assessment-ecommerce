@@ -19,7 +19,6 @@ const SORT_OPTIONS = [
   { value: 'default',    label: 'Relevance'         },
   { value: 'price_asc',  label: 'Price: Low → High' },
   { value: 'price_desc', label: 'Price: High → Low' },
-  { value: 'rating',     label: 'Best Rated'        },
   { value: 'newest',     label: 'Newest'            },
 ]
 
@@ -31,36 +30,28 @@ const PRICE_RANGES = [
   { label: '$500+',        min: 500,  max: Infinity },
 ]
 
-// Map sort option → DummyJSON params
-function toApiSort(sort: string): Pick<ProductFilters, 'sortBy' | 'order'> {
+// Map the UI sort option → backend query params (sortBy + sortOrder)
+function toApiSort(sort: string): Pick<ProductFilters, 'sortBy' | 'sortOrder'> {
   switch (sort) {
-    case 'price_asc':  return { sortBy: 'price',  order: 'asc'  }
-    case 'price_desc': return { sortBy: 'price',  order: 'desc' }
-    case 'rating':     return { sortBy: 'rating', order: 'desc' }
+    case 'price_asc':  return { sortBy: 'price',     sortOrder: 'asc'  }
+    case 'price_desc': return { sortBy: 'price',     sortOrder: 'desc' }
+    case 'newest':     return { sortBy: 'createdAt', sortOrder: 'desc' }
     default:           return {}
   }
 }
 
-// Apply price filter + "newest" sort client-side after server response
+// Apply the price-range filter client-side after the server response.
 function applyClientFilters(
   items: Product[],
   priceMin: number,
   priceMax: number,
-  sort: string,
 ): Product[] {
-  let result = items
-
   if (priceMin > 0 || priceMax < Infinity) {
-    result = result.filter(
+    return items.filter(
       (p) => p.discountedPrice >= priceMin && p.discountedPrice <= priceMax,
     )
   }
-
-  if (sort === 'newest') {
-    result = [...result].sort((a, b) => Number(b.id) - Number(a.id))
-  }
-
-  return result
+  return items
 }
 
 // ── Filter panel (sidebar / drawer) ─────────────────────────────────────────
@@ -282,8 +273,8 @@ export default function ProductList() {
 
   // Apply client-side price + newest sort
   const filteredItems = useMemo(
-    () => applyClientFilters(data?.items ?? [], priceMin, priceMax, sort),
-    [data?.items, priceMin, priceMax, sort],
+    () => applyClientFilters(data?.items ?? [], priceMin, priceMax),
+    [data?.items, priceMin, priceMax],
   )
 
   const totalPages = isSearching

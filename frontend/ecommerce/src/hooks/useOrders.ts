@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { orderService } from '@/services/orderService'
+import { orderService, type CheckoutPayload } from '@/services/orderService'
 import { QUERY_KEYS } from '@/constants/queryKeys'
 import { useAuth } from '@/context/AuthContext'
 import type { OrderStatus, PaymentStatus } from '@/types'
@@ -34,9 +34,9 @@ export function useCheckout() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (payload: CheckoutPayload) => {
       if (!user) throw new Error('Must be logged in to place an order')
-      return orderService.checkout()
+      return orderService.checkout(payload)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.CART })

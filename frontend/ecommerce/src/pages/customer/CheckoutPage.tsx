@@ -552,13 +552,31 @@ export default function CheckoutPage() {
 
   async function handlePlaceOrder() {
     setOrderError('')
+    if (!shippingData || !paymentData) return
+
+    const last4 = paymentData.cardNumber.replace(/\s/g, '').slice(-4)
 
     try {
-      const result = await checkout.mutateAsync()
+      const result = await checkout.mutateAsync({
+        shippingAddress: {
+          fullName: `${shippingData.firstName} ${shippingData.lastName}`.trim(),
+          phone: shippingData.phone,
+          street: shippingData.street,
+          apt: shippingData.apt,
+          city: shippingData.city,
+          state: shippingData.state,
+          zipCode: shippingData.zipCode,
+          country: shippingData.country,
+        },
+        paymentMethod: `Card (mock) •••• ${last4}`,
+      })
       clearCart()
       navigate(ROUTES.CUSTOMER.CHECKOUT_SUCCESS, { state: { order: result.order }, replace: true })
-    } catch {
-      setOrderError('Something went wrong placing your order. Please try again.')
+    } catch (err: any) {
+      setOrderError(
+        err?.response?.data?.message ||
+          'Something went wrong placing your order. Please try again.',
+      )
     }
   }
 

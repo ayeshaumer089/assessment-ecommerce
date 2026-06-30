@@ -10,8 +10,7 @@ interface AdminProductPayload {
   price: number
   category: string
   stock: number
-  image?: string
-  brand?: string
+  image: string
 }
 
 export function useCreateProduct() {

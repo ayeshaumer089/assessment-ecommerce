@@ -46,8 +46,7 @@ export class User {
 
 export const UserSchema = SchemaFactory.createForClass(User);
 
-// ── Indexes ──────────────────────────────────────────────────────────────────
-UserSchema.index({ email: 1 }, { unique: true });
+// Note: the unique index on `email` is created by `unique: true` on the prop.
 
 // ── Hash password before save ─────────────────────────────────────────────
 UserSchema.pre('save', async function (this: UserDocument, next) {

@@ -25,12 +25,21 @@ function mapProduct(data: any): Product {
   }
 }
 
+// Sort fields the backend actually supports (see QueryProductDto on the API).
+const VALID_SORT_FIELDS = ['price', 'name', 'createdAt', 'stock']
+
 export const productService = {
   async getProducts(filters: ProductFilters = {}): Promise<PaginatedResult<Product>> {
-    const params: any = { ...filters }
-    if (params.sortBy) {
-      if (!params.sortOrder) params.sortOrder = params.order || 'desc'
+    const { order, sortBy, sortOrder, ...rest } = filters
+    const params: any = { ...rest }
+
+    // Only forward a sort the backend understands; otherwise omit it entirely
+    // so the API's validation (forbidNonWhitelisted) doesn't reject the request.
+    if (sortBy && VALID_SORT_FIELDS.includes(sortBy)) {
+      params.sortBy = sortBy
+      params.sortOrder = sortOrder || order || 'desc'
     }
+
     const { data } = await api.get<any>('/products', { params })
     // Interceptor preserves { data: [...], meta: {...} } from the envelope
     const rawItems: any[] = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : [])
@@ -73,7 +82,17 @@ export const productService = {
   },
 
   async getCategories(): Promise<{ slug: string; name: string }[]> {
-    // Since our backend doesn't have a categories endpoint yet, return static from seed
+    // Prefer the live categories endpoint; fall back to a static list if it is
+    // unavailable so the storefront filters keep working.
+    try {
+      const { data } = await api.get<any[]>('/categories')
+      const list = Array.isArray(data) ? data : []
+      if (list.length > 0) {
+        return list.map((c) => ({ slug: c.slug, name: c.name }))
+      }
+    } catch {
+      // ignore and use fallback
+    }
     return [
       { slug: 'electronics', name: 'Electronics' },
       { slug: 'clothing', name: 'Clothing' },

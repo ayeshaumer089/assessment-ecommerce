@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { authService } from '@/services/authService'
 import type { User } from '@/types'
 
-const TOKEN_KEY = 'dj_token'
-const USER_KEY = 'dj_user'
+const TOKEN_KEY = 'token'
+const USER_KEY = 'user'
 
 const mockUser: User = {
   id: '1',
@@ -52,11 +52,11 @@ describe('authService – localStorage helpers', () => {
     })
   })
 
-  describe('logout', () => {
+  describe('clearStorage', () => {
     it('clears token and user from localStorage', () => {
       localStorage.setItem(TOKEN_KEY, 'abc123')
       localStorage.setItem(USER_KEY, JSON.stringify(mockUser))
-      authService.logout()
+      authService.clearStorage()
       expect(localStorage.getItem(TOKEN_KEY)).toBeNull()
       expect(localStorage.getItem(USER_KEY)).toBeNull()
     })

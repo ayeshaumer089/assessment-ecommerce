@@ -29,7 +29,7 @@ export class Category {
 
 export const CategorySchema = SchemaFactory.createForClass(Category);
 
-CategorySchema.index({ slug: 1 }, { unique: true });
+// Note: the unique indexes on `name` and `slug` come from `unique: true` on the props.
 CategorySchema.index({ parent: 1, isActive: 1 });
 CategorySchema.index({ sortOrder: 1 });
 

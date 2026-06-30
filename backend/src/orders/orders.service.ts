@@ -8,12 +8,14 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Order, OrderDocument } from './schemas/order.schema';
 import { Cart, CartDocument } from '../cart/schemas/cart.schema';
+import { Product, ProductDocument } from '../products/schemas/product.schema';
 import { ProductsService } from '../products/products.service';
 import { CartService } from '../cart/cart.service';
 import { CheckoutDto } from './dto/checkout.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { OrderStatus } from './enums/order-status.enum';
 import { PaymentStatus } from './enums/payment-status.enum';
+import { calculateShipping } from '../common/constants/shipping';
 
 // Defines which transitions are legal from each status.
 // Terminal statuses (delivered, cancelled) have empty arrays.
@@ -33,11 +35,15 @@ export interface MockPaymentResult {
   processedAt: string;
 }
 
+type StockChange = { productId: Types.ObjectId; quantity: number };
+
 @Injectable()
 export class OrdersService {
   constructor(
     @InjectModel(Order.name) private readonly orderModel: Model<OrderDocument>,
     @InjectModel(Cart.name) private readonly cartModel: Model<CartDocument>,
+    @InjectModel(Product.name)
+    private readonly productModel: Model<ProductDocument>,
     private readonly productsService: ProductsService,
     private readonly cartService: CartService,
   ) {}
@@ -46,9 +52,8 @@ export class OrdersService {
 
   async checkout(
     userId: string,
-    _dto: CheckoutDto,
+    dto: CheckoutDto,
   ): Promise<{ order: OrderDocument; payment: MockPaymentResult }> {
-    // Read the raw cart (no populate needed — we re-fetch each product for fresh data)
     const cart = await this.cartModel.findOne({
       userId: new Types.ObjectId(userId),
     });
@@ -57,14 +62,15 @@ export class OrdersService {
       throw new BadRequestException('Your cart is empty');
     }
 
-    // Validate stock for every item and build order lines from live DB prices
+    // Build order lines from the live DB price (never trust the cart snapshot).
     const orderItems: Array<{
       productId: Types.ObjectId;
       name: string;
+      image?: string;
       quantity: number;
       price: number;
     }> = [];
-    let runningTotal = 0;
+    let subtotal = 0;
 
     for (const cartItem of cart.items) {
       const product = await this.productsService.findOne(
@@ -78,34 +84,49 @@ export class OrdersService {
         );
       }
 
-      runningTotal += product.price * cartItem.quantity;
-
+      subtotal += product.price * cartItem.quantity;
       orderItems.push({
         productId: cartItem.productId,
         name: product.name,
+        image: product.image,
         quantity: cartItem.quantity,
-        price: product.price, // always use current DB price, not the cart snapshot
+        price: product.price,
       });
     }
 
-    const totalAmount = parseFloat(runningTotal.toFixed(2));
+    subtotal = round(subtotal);
+    const shippingCost = calculateShipping(subtotal);
+    const totalAmount = round(subtotal + shippingCost);
 
-    // Mock payment gateway — always succeeds
+    // Reserve stock atomically — protects against overselling under concurrency.
+    await this.decrementStock(orderItems);
+
+    // Mock payment gateway — always succeeds in this assessment build.
     const payment = this.mockPayment(totalAmount);
 
-    const order = new this.orderModel({
-      userId: new Types.ObjectId(userId),
-      items: orderItems,
-      totalAmount,
-      status: OrderStatus.PENDING,
-      paymentStatus: PaymentStatus.PAID,
-    });
+    try {
+      const order = new this.orderModel({
+        userId: new Types.ObjectId(userId),
+        items: orderItems,
+        subtotal,
+        shippingCost,
+        totalAmount,
+        shippingAddress: dto.shippingAddress,
+        paymentMethod: dto.paymentMethod || 'Card (mock)',
+        status: OrderStatus.PENDING,
+        paymentStatus: PaymentStatus.PAID,
+      });
 
-    // Persist the order before clearing the cart so a crash doesn't lose the order
-    await order.save();
-    await this.cartService.clearCart(userId);
+      // Persist the order before clearing the cart so a crash doesn't lose it.
+      await order.save();
+      await this.cartService.clearCart(userId);
 
-    return { order, payment };
+      return { order, payment };
+    } catch (err) {
+      // Order failed to persist — release the stock we just reserved.
+      await this.restoreStock(orderItems);
+      throw err;
+    }
   }
 
   // ── Customer ─────────────────────────────────────────────────────────────────
@@ -143,7 +164,10 @@ export class OrdersService {
     }
 
     order.status = OrderStatus.CANCELLED;
-    return order.save();
+    const saved = await order.save();
+    // Return reserved units to inventory.
+    await this.restoreStock(order.items as unknown as StockChange[]);
+    return saved;
   }
 
   // ── Admin ─────────────────────────────────────────────────────────────────────
@@ -170,7 +194,17 @@ export class OrdersService {
           `Cannot transition from "${order.status}" to "${dto.status}". ${hint}`,
         );
       }
+
+      const isCancelling = dto.status === OrderStatus.CANCELLED;
       order.status = dto.status;
+      if (dto.paymentStatus) order.paymentStatus = dto.paymentStatus;
+      const saved = await order.save();
+
+      // Admin-driven cancellation also returns stock to inventory.
+      if (isCancelling) {
+        await this.restoreStock(order.items as unknown as StockChange[]);
+      }
+      return saved;
     }
 
     if (dto.paymentStatus) {
@@ -178,6 +212,48 @@ export class OrdersService {
     }
 
     return order.save();
+  }
+
+  // ── Stock helpers ─────────────────────────────────────────────────────────────
+
+  /**
+   * Atomically decrements stock for each line item. The conditional filter
+   * (`stock >= quantity`) makes each update safe under concurrency — if any
+   * item lacks stock, all previously-applied decrements are rolled back.
+   */
+  private async decrementStock(items: StockChange[]): Promise<void> {
+    const applied: StockChange[] = [];
+
+    for (const item of items) {
+      const updated = await this.productModel
+        .findOneAndUpdate(
+          { _id: item.productId, stock: { $gte: item.quantity } },
+          { $inc: { stock: -item.quantity } },
+        )
+        .exec();
+
+      if (!updated) {
+        await this.restoreStock(applied);
+        throw new BadRequestException(
+          'Insufficient stock for one or more items. Please review your cart.',
+        );
+      }
+      applied.push({ productId: item.productId, quantity: item.quantity });
+    }
+  }
+
+  /** Returns reserved units to inventory (used on cancel / rollback). */
+  private async restoreStock(items: StockChange[]): Promise<void> {
+    await Promise.all(
+      items.map((item) =>
+        this.productModel
+          .updateOne(
+            { _id: item.productId },
+            { $inc: { stock: item.quantity } },
+          )
+          .exec(),
+      ),
+    );
   }
 
   // ── Mock payment ─────────────────────────────────────────────────────────────
@@ -192,4 +268,8 @@ export class OrdersService {
       processedAt: new Date().toISOString(),
     };
   }
+}
+
+function round(n: number, decimals = 2): number {
+  return parseFloat(n.toFixed(decimals));
 }
