@@ -60,6 +60,16 @@ export class CheckoutDto {
   @MaxLength(60)
   paymentMethod?: string;
 
+  /**
+   * Stripe PaymentIntent that was already confirmed in the browser.
+   * When present the server verifies it with Stripe and marks the order paid;
+   * when absent checkout falls back to the legacy simulated payment.
+   */
+  @IsString()
+  @IsOptional()
+  @MaxLength(120)
+  paymentIntentId?: string;
+
   @IsString()
   @IsOptional()
   @MaxLength(500)

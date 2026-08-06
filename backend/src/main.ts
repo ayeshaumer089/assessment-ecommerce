@@ -13,6 +13,10 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'warn', 'log', 'debug'],
+    // Keeps the untouched request buffer on `req.rawBody`. Stripe signs the
+    // exact bytes it sent, so webhook verification fails against re-serialised
+    // JSON. This flag preserves normal body parsing for every other route.
+    rawBody: true,
   });
 
   const configService = app.get(ConfigService);
@@ -23,7 +27,7 @@ async function bootstrap() {
   app.enableCors({
     origin: ['http://localhost:5173', 'http://localhost:4173', 'http://localhost:3001'],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Stripe-Signature'],
     credentials: true,
   });
 

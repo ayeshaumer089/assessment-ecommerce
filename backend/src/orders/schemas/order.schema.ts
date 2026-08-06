@@ -63,6 +63,27 @@ class ShippingAddress {
   country: string;
 }
 
+// ── Embedded payment details ──────────────────────────────────────────────────
+// Snapshot of the instrument that settled the order. Only non-sensitive,
+// PCI-safe fields Stripe hands back — never a PAN, never a CVC.
+@Schema({ _id: false })
+class PaymentDetails {
+  @Prop({ trim: true })
+  brand?: string;
+
+  @Prop({ trim: true })
+  last4?: string;
+
+  @Prop()
+  expMonth?: number;
+
+  @Prop()
+  expYear?: number;
+
+  @Prop({ trim: true })
+  receiptUrl?: string;
+}
+
 export type OrderDocument = HydratedDocument<Order>;
 
 @Schema({ timestamps: true, collection: 'orders' })
@@ -110,6 +131,20 @@ export class Order {
   @Prop({ trim: true, default: 'Card (mock)' })
   paymentMethod: string;
 
+  /** Gateway that settled this order. Legacy orders have no value. */
+  @Prop({ trim: true })
+  paymentProvider?: string;
+
+  /**
+   * Stripe PaymentIntent id. Doubles as the idempotency key for fulfilment —
+   * the browser and the webhook race to create the order and exactly one wins.
+   */
+  @Prop({ trim: true, default: null })
+  paymentIntentId?: string | null;
+
+  @Prop({ type: PaymentDetails, default: null })
+  paymentDetails?: PaymentDetails | null;
+
   @Prop({
     type: String,
     enum: {
@@ -138,6 +173,12 @@ OrderSchema.index({ userId: 1, createdAt: -1 });
 OrderSchema.index({ status: 1 });
 OrderSchema.index({ paymentStatus: 1 });
 OrderSchema.index({ createdAt: -1 });
+// Sparse + unique: enforces one-order-per-PaymentIntent without tripping over
+// the many legacy/mock orders that carry no intent id at all.
+OrderSchema.index(
+  { paymentIntentId: 1 },
+  { unique: true, sparse: true, partialFilterExpression: { paymentIntentId: { $type: 'string' } } },
+);
 
 // ── Virtual: item count ───────────────────────────────────────────────────────
 OrderSchema.virtual('itemCount').get(function (this: OrderDocument) {

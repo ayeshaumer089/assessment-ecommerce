@@ -3,7 +3,17 @@ import type { Address, Order, OrderStatus, PaymentStatus, Product } from '@/type
 
 export interface CheckoutPayload {
   shippingAddress: Address
-  paymentMethod: string
+  /**
+   * Optional label override. Left unset for Stripe orders so the server can
+   * derive it from the card brand it verified.
+   */
+  paymentMethod?: string
+  /**
+   * Stripe PaymentIntent already confirmed in the browser. The server
+   * re-verifies it before marking the order paid. Omitted for the legacy
+   * simulated-payment path.
+   */
+  paymentIntentId?: string
 }
 
 function mapAddress(data: any): Address {

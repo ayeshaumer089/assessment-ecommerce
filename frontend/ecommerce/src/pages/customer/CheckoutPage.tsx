@@ -1,18 +1,34 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, Navigate, Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import {
+  Elements,
+  PaymentElement,
+  useElements,
+  useStripe,
+} from '@stripe/react-stripe-js'
+import {
   MapPin, CreditCard, ClipboardCheck, CheckCircle,
-  Lock, Tag, Truck, ArrowLeft, ChevronRight, Eye, EyeOff,
+  Lock, Tag, Truck, ArrowLeft, ChevronRight, Loader2,
 } from 'lucide-react'
 import { useCart } from '@/hooks/useCart'
 import { useCheckout } from '@/hooks/useOrders'
+import { useCreatePaymentIntent } from '@/hooks/usePayment'
+import { paymentService } from '@/services/paymentService'
+import { getStripe, STRIPE_APPEARANCE } from '@/lib/stripe'
 import { ROUTES } from '@/constants/routes'
 import { formatCurrency } from '@/utils/formatters'
 import { FREE_SHIPPING_THRESHOLD, SHIPPING_COST } from '@/constants/shipping'
 import type { CartItem } from '@/types'
+
+// Stripe.js is loaded once for the whole module — see lib/stripe.ts.
+const stripePromise = getStripe()
+
+// Survives the full-page redirect some payment methods (wallets, BNPL) perform.
+// Card payments resolve in-page, but this keeps the flow intact for the rest.
+const CHECKOUT_STATE_KEY = 'sz:checkout:state'
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
 const shippingSchema = z.object({
@@ -28,24 +44,22 @@ const shippingSchema = z.object({
   country:   z.string().min(1, 'Country is required'),
 })
 
+// Card number, expiry and CVC are collected inside Stripe's hosted iframe and
+// never reach this origin — so the only card field this app still owns is the
+// cardholder name.
 const paymentSchema = z.object({
-  cardNumber: z.string().regex(/^\d{4} \d{4} \d{4} \d{4}$/, 'Enter a valid 16-digit card number'),
   nameOnCard: z.string().min(2, 'Name is required'),
-  expiry:     z.string().regex(/^(0[1-9]|1[0-2])\/\d{2}$/, 'Format: MM/YY'),
-  cvv:        z.string().regex(/^\d{3,4}$/, 'Enter 3 or 4 digits'),
 })
 
-type ShippingData = z.infer<typeof shippingSchema>
-type PaymentData  = z.infer<typeof paymentSchema>
-type Step         = 'shipping' | 'payment' | 'review'
+type ShippingData    = z.infer<typeof shippingSchema>
+type PaymentFormData = z.infer<typeof paymentSchema>
+type Step            = 'shipping' | 'payment' | 'review'
 
-function fmtCard(v: string) {
-  const d = v.replace(/\D/g, '').slice(0, 16)
-  return d.replace(/(.{4})/g, '$1 ').trim()
-}
-function fmtExpiry(v: string) {
-  const d = v.replace(/\D/g, '').slice(0, 4)
-  return d.length >= 3 ? `${d.slice(0, 2)}/${d.slice(2)}` : d
+/** What the review step displays — read back from Stripe after confirmation. */
+interface PaymentData {
+  cardNumber: string
+  nameOnCard: string
+  expiry: string
 }
 
 // ── Step indicator ─────────────────────────────────────────────────────────────
@@ -234,26 +248,81 @@ function ShippingForm({
   )
 }
 
-// ── Payment form ──────────────────────────────────────────────────────────────
+// ── Payment form (Stripe Elements) ────────────────────────────────────────────
+/**
+ * Confirms the PaymentIntent before advancing to review. Doing it here is what
+ * lets the review step show the real brand and last-4, instead of whatever was
+ * typed into an unvalidated text box.
+ */
 function PaymentForm({
   onNext,
   onBack,
+  clientSecret,
   defaultValues,
 }: {
-  onNext: (data: PaymentData) => void
+  onNext: (nameOnCard: string) => Promise<void>
   onBack: () => void
-  defaultValues?: Partial<PaymentData>
+  clientSecret: string
+  defaultValues?: Partial<PaymentFormData>
 }) {
-  const [showCvv, setShowCvv] = useState(false)
-  const { register, handleSubmit, setValue, watch, formState: { errors } } =
-    useForm<PaymentData>({ resolver: zodResolver(paymentSchema), defaultValues })
+  const stripe   = useStripe()
+  const elements = useElements()
 
-  const cardNumber = watch('cardNumber', '')
-  const expiry     = watch('expiry', '')
-  const segments   = cardNumber ? cardNumber.split(' ') : []
+  const [isPaying,    setIsPaying]    = useState(false)
+  const [stripeError, setStripeError] = useState('')
+
+  const { register, handleSubmit, formState: { errors } } =
+    useForm<PaymentFormData>({ resolver: zodResolver(paymentSchema), defaultValues })
+
+  async function onSubmit(data: PaymentFormData) {
+    if (!stripe || !elements) return
+
+    setIsPaying(true)
+    setStripeError('')
+
+    // Stepping Back from review returns here with an intent that is already
+    // paid. Confirming it a second time is an error, so just move forward.
+    const existing = await stripe.retrievePaymentIntent(clientSecret)
+    if (existing.paymentIntent?.status === 'succeeded') {
+      await onNext(data.nameOnCard)
+      setIsPaying(false)
+      return
+    }
+
+    const { error, paymentIntent } = await stripe.confirmPayment({
+      elements,
+      confirmParams: {
+        // Only used by methods that navigate away; cards resolve in-page.
+        return_url: `${window.location.origin}${ROUTES.CUSTOMER.CHECKOUT}`,
+        payment_method_data: { billing_details: { name: data.nameOnCard } },
+      },
+      redirect: 'if_required',
+    })
+
+    if (error) {
+      // card_error / validation_error are written for shoppers and safe to show
+      // verbatim; any other type could leak internals, so it gets a generic one.
+      setStripeError(
+        error.type === 'card_error' || error.type === 'validation_error'
+          ? error.message || 'Your card could not be processed.'
+          : 'Something went wrong processing your payment. Please try again.',
+      )
+      setIsPaying(false)
+      return
+    }
+
+    if (paymentIntent?.status !== 'succeeded') {
+      setStripeError('Your payment could not be completed. Please try another card.')
+      setIsPaying(false)
+      return
+    }
+
+    await onNext(data.nameOnCard)
+    setIsPaying(false)
+  }
 
   return (
-    <form onSubmit={handleSubmit(onNext)} noValidate>
+    <form onSubmit={handleSubmit(onSubmit)} noValidate>
       <div className="sz-panel-title">
         <CreditCard size={20} className="ic" />
         Payment Details
@@ -264,7 +333,7 @@ function PaymentForm({
         <div className="dots">
           {[0, 1, 2, 3].map((i) => (
             <span key={i} style={{ fontFamily: 'monospace', letterSpacing: 3 }}>
-              {segments[i] || '····'}
+              ····
             </span>
           ))}
         </div>
@@ -272,58 +341,95 @@ function PaymentForm({
       </div>
 
       <div className="sz-form-grid">
-        <Field label="Card Number" error={errors.cardNumber?.message} full>
-          <input
-            type="text"
-            placeholder="1234 5678 9012 3456"
-            value={cardNumber}
-            onChange={(e) => setValue('cardNumber', fmtCard(e.target.value), { shouldValidate: true })}
-            inputMode="numeric"
-            style={{ fontFamily: 'monospace', letterSpacing: 2 }}
+        <div className="sz-field full">
+          <PaymentElement
+            options={{
+              layout: 'tabs',
+              // The cardholder name has its own field below, so Stripe must
+              // not collect it a second time.
+              fields: { billingDetails: { name: 'never' } },
+            }}
           />
-        </Field>
+        </div>
         <Field label="Name on Card" error={errors.nameOnCard?.message} full>
           <input type="text" placeholder="John Doe" {...register('nameOnCard')} />
         </Field>
-        <Field label="Expiry Date" error={errors.expiry?.message}>
-          <input
-            type="text"
-            placeholder="MM/YY"
-            value={expiry}
-            onChange={(e) => setValue('expiry', fmtExpiry(e.target.value), { shouldValidate: true })}
-            inputMode="numeric"
-            style={{ fontFamily: 'monospace' }}
-          />
-        </Field>
-        <Field label="CVV" error={errors.cvv?.message}>
-          <div className="sz-pwd-wrap">
-            <input
-              type={showCvv ? 'text' : 'password'}
-              placeholder="•••"
-              {...register('cvv')}
-              inputMode="numeric"
-              maxLength={4}
-            />
-            <button type="button" className="eye" onClick={() => setShowCvv((v) => !v)}>
-              {showCvv ? <EyeOff size={15} /> : <Eye size={15} />}
-            </button>
-          </div>
-        </Field>
       </div>
 
+      {stripeError && <div className="sz-err-banner">{stripeError}</div>}
+
       <div className="sz-secure-note">
-        <Lock size={13} /> This is a demo checkout — no real payment is processed.
+        <Lock size={13} /> Payments are processed securely by Stripe — card details never touch our servers.
       </div>
 
       <div className="sz-btn-row">
-        <button type="button" className="sz-btn-back" onClick={onBack}>
+        <button type="button" className="sz-btn-back" onClick={onBack} disabled={isPaying}>
           <ArrowLeft size={16} /> Back
         </button>
-        <button type="submit" className="sz-btn-main">
-          Review Order <ChevronRight size={16} />
+        <button type="submit" className="sz-btn-main" disabled={!stripe || isPaying}>
+          {isPaying ? 'Confirming Payment…' : 'Review Order'}
+          {isPaying ? null : <ChevronRight size={16} />}
         </button>
       </div>
     </form>
+  )
+}
+
+// ── Payment step shell ────────────────────────────────────────────────────────
+/**
+ * PaymentElement can only mount once a clientSecret exists, so this owns the
+ * loading and error states around it.
+ */
+function PaymentStep({
+  clientSecret,
+  intentError,
+  onRetry,
+  onBack,
+  children,
+}: {
+  clientSecret: string | null
+  intentError: string
+  onRetry: () => void
+  onBack: () => void
+  children: React.ReactNode
+}) {
+  if (clientSecret) {
+    return (
+      <Elements
+        stripe={stripePromise}
+        options={{ clientSecret, appearance: STRIPE_APPEARANCE }}
+      >
+        {children}
+      </Elements>
+    )
+  }
+
+  return (
+    <div>
+      <div className="sz-panel-title">
+        <CreditCard size={20} className="ic" />
+        Payment Details
+      </div>
+      <div className="sz-panel-sub">Your payment information is encrypted and secure.</div>
+
+      {intentError ? (
+        <>
+          <div className="sz-err-banner">{intentError}</div>
+          <div className="sz-btn-row">
+            <button type="button" className="sz-btn-back" onClick={onBack}>
+              <ArrowLeft size={16} /> Back
+            </button>
+            <button type="button" className="sz-btn-main" onClick={onRetry}>
+              Try Again <ChevronRight size={16} />
+            </button>
+          </div>
+        </>
+      ) : (
+        <div className="sz-secure-note" style={{ marginTop: 28 }}>
+          <Loader2 size={14} className="animate-spin" /> Setting up secure payment…
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -399,37 +505,133 @@ export default function CheckoutPage() {
   const navigate = useNavigate()
   const { items, isEmpty, clearCart } = useCart()
   const checkout = useCheckout()
+  const createIntent = useCreatePaymentIntent()
 
   const [step,         setStep]         = useState<Step>('shipping')
   const [shippingData, setShippingData] = useState<ShippingData | null>(null)
   const [paymentData,  setPaymentData]  = useState<PaymentData  | null>(null)
   const [orderError,   setOrderError]   = useState<string>('')
 
-  if (isEmpty) return <Navigate to={ROUTES.CUSTOMER.CART} replace />
+  const [clientSecret,    setClientSecret]    = useState<string | null>(null)
+  const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null)
+  const [intentError,     setIntentError]     = useState<string>('')
 
   function scrollTop() { window.scrollTo({ top: 0, behavior: 'smooth' }) }
 
-  function handleShippingNext(data: ShippingData) { setShippingData(data); setStep('payment'); scrollTop() }
-  function handlePaymentNext(data: PaymentData)   { setPaymentData(data);  setStep('review'); scrollTop() }
+  function toShippingAddress(data: ShippingData) {
+    return {
+      fullName: `${data.firstName} ${data.lastName}`.trim(),
+      phone: data.phone,
+      street: data.street,
+      apt: data.apt,
+      city: data.city,
+      state: data.state,
+      zipCode: data.zipCode,
+      country: data.country,
+    }
+  }
+
+  /** Reads the confirmed card's brand / last-4 / expiry back for the recap. */
+  async function hydrateReviewFromIntent(intentId: string, nameOnCard: string) {
+    let cardNumber = '**** **** **** ····'
+    let expiry     = '••/••'
+
+    try {
+      const summary = await paymentService.getIntent(intentId)
+      if (summary.card?.last4) cardNumber = `**** **** **** ${summary.card.last4}`
+      if (summary.card?.expMonth && summary.card?.expYear) {
+        expiry = `${String(summary.card.expMonth).padStart(2, '0')}/${String(summary.card.expYear).slice(-2)}`
+      }
+    } catch {
+      // Non-fatal — the payment already succeeded; this only affects the recap.
+    }
+
+    setPaymentData({ cardNumber, nameOnCard, expiry })
+    setStep('review')
+    scrollTop()
+  }
+
+  // Restore the wizard when a payment method redirected the browser away.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const redirectStatus = params.get('redirect_status')
+    if (!redirectStatus) return
+
+    const raw = sessionStorage.getItem(CHECKOUT_STATE_KEY)
+    window.history.replaceState({}, '', ROUTES.CUSTOMER.CHECKOUT)
+    if (!raw) return
+
+    try {
+      const saved = JSON.parse(raw) as {
+        shippingData: ShippingData
+        nameOnCard: string
+        paymentIntentId: string
+      }
+      setShippingData(saved.shippingData)
+      setPaymentIntentId(saved.paymentIntentId)
+
+      if (redirectStatus === 'succeeded') {
+        void hydrateReviewFromIntent(saved.paymentIntentId, saved.nameOnCard)
+      } else {
+        setOrderError('Your payment was not completed. Please try again.')
+      }
+    } catch {
+      sessionStorage.removeItem(CHECKOUT_STATE_KEY)
+    }
+    // Mount-only: the redirect result is read from the URL, not from props.
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Once the payment has been confirmed the cart is no longer the source of
+  // truth for this flow, so an empty cart must not bounce the customer away.
+  if (isEmpty && step !== 'review') return <Navigate to={ROUTES.CUSTOMER.CART} replace />
+
+  /** Opens (or re-prices) the PaymentIntent for the cart as it stands now. */
+  async function openPaymentIntent(data: ShippingData) {
+    setIntentError('')
+    setClientSecret(null)
+    try {
+      const intent = await createIntent.mutateAsync({
+        shippingAddress: toShippingAddress(data),
+      })
+      setClientSecret(intent.clientSecret)
+      setPaymentIntentId(intent.paymentIntentId)
+    } catch (err: any) {
+      setIntentError(
+        err?.response?.data?.message ||
+          'We could not start a secure payment session. Please try again.',
+      )
+    }
+  }
+
+  function handleShippingNext(data: ShippingData) {
+    setShippingData(data)
+    setStep('payment')
+    scrollTop()
+    void openPaymentIntent(data)
+  }
+
+  async function handlePaymentNext(nameOnCard: string) {
+    if (paymentIntentId && shippingData) {
+      // Written before any redirect-based method can navigate away.
+      sessionStorage.setItem(
+        CHECKOUT_STATE_KEY,
+        JSON.stringify({ shippingData, nameOnCard, paymentIntentId }),
+      )
+    }
+    await hydrateReviewFromIntent(paymentIntentId as string, nameOnCard)
+  }
 
   async function handlePlaceOrder() {
     setOrderError('')
     if (!shippingData || !paymentData) return
-    const last4 = paymentData.cardNumber.replace(/\s/g, '').slice(-4)
     try {
       const result = await checkout.mutateAsync({
-        shippingAddress: {
-          fullName: `${shippingData.firstName} ${shippingData.lastName}`.trim(),
-          phone: shippingData.phone,
-          street: shippingData.street,
-          apt: shippingData.apt,
-          city: shippingData.city,
-          state: shippingData.state,
-          zipCode: shippingData.zipCode,
-          country: shippingData.country,
-        },
-        paymentMethod: `Card (mock) •••• ${last4}`,
+        shippingAddress: toShippingAddress(shippingData),
+        // Left off deliberately: the server labels the order from the real
+        // card brand Stripe reports, not from anything the client asserts.
+        paymentIntentId: paymentIntentId || undefined,
       })
+      sessionStorage.removeItem(CHECKOUT_STATE_KEY)
       clearCart()
       navigate(ROUTES.CUSTOMER.CHECKOUT_SUCCESS, { state: { order: result.order }, replace: true })
     } catch (err: any) {
@@ -461,11 +663,21 @@ export default function CheckoutPage() {
             <ShippingForm onNext={handleShippingNext} defaultValues={shippingData ?? undefined} />
           )}
           {step === 'payment' && (
-            <PaymentForm
-              onNext={handlePaymentNext}
+            <PaymentStep
+              clientSecret={clientSecret}
+              intentError={intentError}
+              onRetry={() => shippingData && void openPaymentIntent(shippingData)}
               onBack={() => setStep('shipping')}
-              defaultValues={paymentData ?? undefined}
-            />
+            >
+              <PaymentForm
+                onNext={handlePaymentNext}
+                onBack={() => setStep('shipping')}
+                clientSecret={clientSecret as string}
+                defaultValues={
+                  paymentData ? { nameOnCard: paymentData.nameOnCard } : undefined
+                }
+              />
+            </PaymentStep>
           )}
           {step === 'review' && shippingData && paymentData && (
             <ReviewStep

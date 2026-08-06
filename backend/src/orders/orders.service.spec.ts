@@ -16,6 +16,7 @@ describe('OrdersService — lifecycle & inventory', () => {
   let productModel: any;
   let productsService: any;
   let cartService: any;
+  let stripeService: any;
 
   const execable = (value: any) => ({ exec: jest.fn().mockResolvedValue(value) });
 
@@ -44,6 +45,8 @@ describe('OrdersService — lifecycle & inventory', () => {
     };
     productsService = { findOne: jest.fn() };
     cartService = { clearCart: jest.fn() };
+    // These tests cover the non-Stripe lifecycle, so the gateway is inert.
+    stripeService = { client: {}, isEnabled: false };
 
     service = new OrdersService(
       orderModel,
@@ -51,6 +54,7 @@ describe('OrdersService — lifecycle & inventory', () => {
       productModel,
       productsService,
       cartService,
+      stripeService,
     );
   });
 

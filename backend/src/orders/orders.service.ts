@@ -1,12 +1,15 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import type Stripe from 'stripe';
 import { Order, OrderDocument } from './schemas/order.schema';
+import { StripeService } from '../stripe/stripe.service';
 import { Cart, CartDocument } from '../cart/schemas/cart.schema';
 import { Product, ProductDocument } from '../products/schemas/product.schema';
 import { ProductsService } from '../products/products.service';
@@ -33,12 +36,56 @@ export interface MockPaymentResult {
   method: string;
   amount: number;
   processedAt: string;
+  /** Present only for Stripe-settled orders. */
+  provider?: string;
+  card?: OrderCardDetails;
+  receiptUrl?: string;
+}
+
+export interface OrderCardDetails {
+  brand?: string;
+  last4?: string;
+  expMonth?: number;
+  expYear?: number;
+  receiptUrl?: string;
+}
+
+export interface OrderLine {
+  productId: Types.ObjectId;
+  name: string;
+  image?: string;
+  quantity: number;
+  price: number;
+}
+
+/**
+ * Server-priced snapshot of a cart. Produced once and reused by both the
+ * PaymentIntent (how much to charge) and the Order (what was bought), so the
+ * two can never drift apart.
+ */
+export interface OrderDraft {
+  items: OrderLine[];
+  subtotal: number;
+  shippingCost: number;
+  totalAmount: number;
+}
+
+/** Everything needed to record an already-settled payment as an order. */
+export interface PaidOrderInput {
+  userId: string;
+  draft: OrderDraft;
+  paymentIntentId: string;
+  shippingAddress?: Record<string, any> | null;
+  paymentMethod?: string;
+  card?: OrderCardDetails | null;
 }
 
 type StockChange = { productId: Types.ObjectId; quantity: number };
 
 @Injectable()
 export class OrdersService {
+  private readonly logger = new Logger(OrdersService.name);
+
   constructor(
     @InjectModel(Order.name) private readonly orderModel: Model<OrderDocument>,
     @InjectModel(Cart.name) private readonly cartModel: Model<CartDocument>,
@@ -46,14 +93,19 @@ export class OrdersService {
     private readonly productModel: Model<ProductDocument>,
     private readonly productsService: ProductsService,
     private readonly cartService: CartService,
+    private readonly stripeService: StripeService,
   ) {}
 
-  // ── Checkout ─────────────────────────────────────────────────────────────────
+  // ── Pricing ──────────────────────────────────────────────────────────────────
 
-  async checkout(
-    userId: string,
-    dto: CheckoutDto,
-  ): Promise<{ order: OrderDocument; payment: MockPaymentResult }> {
+  /**
+   * Prices the user's cart from live product data — the single source of truth
+   * for "what does this order cost". Called once to size the PaymentIntent and
+   * again at fulfilment, so a tampered client can never change the amount.
+   *
+   * @param strictStock when true, throws if any line exceeds available stock.
+   */
+  async buildOrderDraft(userId: string, strictStock = true): Promise<OrderDraft> {
     const cart = await this.cartModel.findOne({
       userId: new Types.ObjectId(userId),
     });
@@ -62,14 +114,7 @@ export class OrdersService {
       throw new BadRequestException('Your cart is empty');
     }
 
-    // Build order lines from the live DB price (never trust the cart snapshot).
-    const orderItems: Array<{
-      productId: Types.ObjectId;
-      name: string;
-      image?: string;
-      quantity: number;
-      price: number;
-    }> = [];
+    const items: OrderLine[] = [];
     let subtotal = 0;
 
     for (const cartItem of cart.items) {
@@ -77,7 +122,7 @@ export class OrdersService {
         cartItem.productId.toString(),
       );
 
-      if (product.stock < cartItem.quantity) {
+      if (strictStock && product.stock < cartItem.quantity) {
         throw new BadRequestException(
           `"${product.name}" only has ${product.stock} unit(s) in stock. ` +
             `Update your cart before checking out.`,
@@ -85,7 +130,7 @@ export class OrdersService {
       }
 
       subtotal += product.price * cartItem.quantity;
-      orderItems.push({
+      items.push({
         productId: cartItem.productId,
         name: product.name,
         image: product.image,
@@ -96,7 +141,29 @@ export class OrdersService {
 
     subtotal = round(subtotal);
     const shippingCost = calculateShipping(subtotal);
-    const totalAmount = round(subtotal + shippingCost);
+
+    return {
+      items,
+      subtotal,
+      shippingCost,
+      totalAmount: round(subtotal + shippingCost),
+    };
+  }
+
+  // ── Checkout ─────────────────────────────────────────────────────────────────
+
+  async checkout(
+    userId: string,
+    dto: CheckoutDto,
+  ): Promise<{ order: OrderDocument; payment: MockPaymentResult }> {
+    // Stripe path — the browser already confirmed a PaymentIntent.
+    if (dto.paymentIntentId) {
+      return this.checkoutWithStripe(userId, dto, dto.paymentIntentId);
+    }
+
+    // ── Legacy simulated path (unchanged) ─────────────────────────────────────
+    const draft = await this.buildOrderDraft(userId);
+    const { items: orderItems, subtotal, shippingCost, totalAmount } = draft;
 
     // Reserve stock atomically — protects against overselling under concurrency.
     await this.decrementStock(orderItems);
@@ -127,6 +194,143 @@ export class OrdersService {
       await this.restoreStock(orderItems);
       throw err;
     }
+  }
+
+  /**
+   * Fulfils an order against a PaymentIntent the browser has already confirmed.
+   *
+   * The intent is re-fetched from Stripe rather than trusted from the request:
+   * a client can send any id, so ownership, status and amount are all verified
+   * server-side before a single unit of stock moves.
+   */
+  private async checkoutWithStripe(
+    userId: string,
+    dto: CheckoutDto,
+    paymentIntentId: string,
+  ): Promise<{ order: OrderDocument; payment: MockPaymentResult }> {
+    const intent = await this.retrievePaymentIntent(paymentIntentId);
+
+    if (intent.metadata?.userId !== userId) {
+      throw new ForbiddenException('This payment does not belong to you');
+    }
+
+    if (intent.status !== 'succeeded') {
+      throw new BadRequestException(
+        `Payment has not completed (status: ${intent.status}). Please try again.`,
+      );
+    }
+
+    // Already fulfilled — most likely the webhook won the race, or the customer
+    // refreshed. Return the existing order instead of charging/creating twice.
+    const existing = await this.orderModel.findOne({ paymentIntentId }).exec();
+    if (existing) {
+      return {
+        order: existing,
+        payment: this.toPaymentResult(existing, intent),
+      };
+    }
+
+    // Price the cart again and check it still matches what Stripe collected.
+    // A mismatch means the cart changed after the intent was sized.
+    const draft = await this.buildOrderDraft(userId, false);
+    const paidAmount = StripeService.fromMinorUnits(
+      intent.amount_received || intent.amount,
+    );
+
+    if (Math.abs(draft.totalAmount - paidAmount) > 0.009) {
+      this.logger.warn(
+        `Cart total (${draft.totalAmount}) differs from the amount paid ` +
+          `(${paidAmount}) for intent ${paymentIntentId}. Fulfilling the ` +
+          `amount actually charged.`,
+      );
+      // The customer was charged `paidAmount` — that is the binding figure.
+      draft.totalAmount = paidAmount;
+      draft.subtotal = round(paidAmount - draft.shippingCost);
+    }
+
+    const card = this.extractCardDetails(intent);
+
+    const order = await this.createPaidOrder({
+      userId,
+      draft,
+      paymentIntentId,
+      shippingAddress: dto.shippingAddress,
+      paymentMethod: dto.paymentMethod || formatPaymentMethod(card),
+      card,
+    });
+
+    return { order, payment: this.toPaymentResult(order, intent) };
+  }
+
+  /**
+   * Records an already-settled payment as an order. Idempotent on
+   * `paymentIntentId`, so the browser and the Stripe webhook can both call it
+   * concurrently and exactly one order results.
+   *
+   * Stock is reserved best-effort here: the money has already moved, so
+   * refusing to create the order would strand a real charge. Shortfalls are
+   * logged for an admin to resolve rather than thrown at the customer.
+   */
+  async createPaidOrder(input: PaidOrderInput): Promise<OrderDocument> {
+    const { userId, draft, paymentIntentId, card } = input;
+
+    const existing = await this.orderModel.findOne({ paymentIntentId }).exec();
+    if (existing) return existing;
+
+    const shortfalls = await this.reserveStockBestEffort(draft.items);
+    if (shortfalls.length) {
+      this.logger.warn(
+        `Order for intent ${paymentIntentId} oversold: ` +
+          shortfalls.map((s) => `${s.name} (short ${s.short})`).join(', '),
+      );
+    }
+
+    try {
+      const order = new this.orderModel({
+        userId: new Types.ObjectId(userId),
+        items: draft.items,
+        subtotal: draft.subtotal,
+        shippingCost: draft.shippingCost,
+        totalAmount: draft.totalAmount,
+        shippingAddress: input.shippingAddress ?? undefined,
+        paymentMethod: input.paymentMethod || formatPaymentMethod(card),
+        paymentProvider: 'stripe',
+        paymentIntentId,
+        paymentDetails: card ?? undefined,
+        status: OrderStatus.PENDING,
+        paymentStatus: PaymentStatus.PAID,
+      });
+
+      await order.save();
+      await this.cartService.clearCart(userId);
+      return order;
+    } catch (err: any) {
+      // Duplicate key = the other caller won the race. Return their order.
+      if (err?.code === 11000) {
+        await this.restoreStock(draft.items);
+        const winner = await this.orderModel.findOne({ paymentIntentId }).exec();
+        if (winner) return winner;
+      }
+      await this.restoreStock(draft.items);
+      throw err;
+    }
+  }
+
+  /** Looks up an order by the Stripe intent that paid for it. */
+  async findByPaymentIntent(
+    paymentIntentId: string,
+  ): Promise<OrderDocument | null> {
+    return this.orderModel.findOne({ paymentIntentId }).exec();
+  }
+
+  /** Flips an order's payment status — used by webhook refund handling. */
+  async markPaymentStatus(
+    orderId: Types.ObjectId | string,
+    paymentStatus: PaymentStatus,
+  ): Promise<void> {
+    await this.orderModel
+      .updateOne({ _id: orderId }, { $set: { paymentStatus } })
+      .exec();
   }
 
   // ── Customer ─────────────────────────────────────────────────────────────────
@@ -242,6 +446,41 @@ export class OrdersService {
     }
   }
 
+  /**
+   * Reserves what it can and reports what it couldn't, instead of throwing.
+   * Used only on the paid path — see `createPaidOrder` for why.
+   */
+  private async reserveStockBestEffort(
+    items: OrderLine[],
+  ): Promise<Array<{ name: string; short: number }>> {
+    const shortfalls: Array<{ name: string; short: number }> = [];
+
+    for (const item of items) {
+      const updated = await this.productModel
+        .findOneAndUpdate(
+          { _id: item.productId, stock: { $gte: item.quantity } },
+          { $inc: { stock: -item.quantity } },
+        )
+        .exec();
+
+      if (!updated) {
+        // Take whatever remains and floor the product at zero.
+        const product = await this.productModel
+          .findOneAndUpdate(
+            { _id: item.productId },
+            [{ $set: { stock: { $max: [0, { $subtract: ['$stock', item.quantity] }] } } }],
+          )
+          .exec();
+        shortfalls.push({
+          name: item.name,
+          short: item.quantity - (product?.stock ?? 0),
+        });
+      }
+    }
+
+    return shortfalls;
+  }
+
   /** Returns reserved units to inventory (used on cancel / rollback). */
   private async restoreStock(items: StockChange[]): Promise<void> {
     await Promise.all(
@@ -254,6 +493,70 @@ export class OrdersService {
           .exec(),
       ),
     );
+  }
+
+  // ── Stripe helpers ───────────────────────────────────────────────────────────
+
+  /** Fetches the intent with the card + charge data expanded in one round-trip. */
+  private async retrievePaymentIntent(
+    paymentIntentId: string,
+  ): Promise<Stripe.PaymentIntent> {
+    try {
+      return await this.stripeService.client.paymentIntents.retrieve(
+        paymentIntentId,
+        { expand: ['payment_method', 'latest_charge'] },
+      );
+    } catch (err: any) {
+      if (err?.statusCode === 404 || err?.code === 'resource_missing') {
+        throw new NotFoundException('Payment not found');
+      }
+      throw new BadRequestException(
+        err?.message || 'Unable to verify the payment with Stripe',
+      );
+    }
+  }
+
+  /** Pulls the PCI-safe card fields (brand, last4, expiry) off an intent. */
+  private extractCardDetails(
+    intent: Stripe.PaymentIntent,
+  ): OrderCardDetails | null {
+    const method = intent.payment_method;
+    const card =
+      method && typeof method !== 'string' ? (method as any).card : null;
+
+    const charge = intent.latest_charge;
+    const receiptUrl =
+      charge && typeof charge !== 'string'
+        ? (charge as Stripe.Charge).receipt_url || undefined
+        : undefined;
+
+    if (!card) return receiptUrl ? { receiptUrl } : null;
+
+    return {
+      brand: card.brand,
+      last4: card.last4,
+      expMonth: card.exp_month,
+      expYear: card.exp_year,
+      receiptUrl,
+    };
+  }
+
+  /** Shapes a settled order into the `{ order, payment }` contract the UI expects. */
+  private toPaymentResult(
+    order: OrderDocument,
+    intent: Stripe.PaymentIntent,
+  ): MockPaymentResult {
+    const card = order.paymentDetails ?? this.extractCardDetails(intent);
+    return {
+      success: intent.status === 'succeeded',
+      transactionId: intent.id,
+      method: 'stripe_card',
+      amount: order.totalAmount,
+      processedAt: new Date(intent.created * 1000).toISOString(),
+      provider: 'stripe',
+      card: card ?? undefined,
+      receiptUrl: card?.receiptUrl,
+    };
   }
 
   // ── Mock payment ─────────────────────────────────────────────────────────────
@@ -272,4 +575,13 @@ export class OrdersService {
 
 function round(n: number, decimals = 2): number {
   return parseFloat(n.toFixed(decimals));
+}
+
+/** "Visa •••• 4242" — the label shown on the order + success screens. */
+function formatPaymentMethod(card?: OrderCardDetails | null): string {
+  if (!card?.last4) return 'Card';
+  const brand = card.brand
+    ? card.brand.charAt(0).toUpperCase() + card.brand.slice(1)
+    : 'Card';
+  return `${brand} •••• ${card.last4}`;
 }

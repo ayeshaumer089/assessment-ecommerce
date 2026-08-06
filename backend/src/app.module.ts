@@ -8,6 +8,8 @@ import { ProductsModule } from './products/products.module';
 import { CategoriesModule } from './categories/categories.module';
 import { CartModule } from './cart/cart.module';
 import { OrdersModule } from './orders/orders.module';
+import { PaymentsModule } from './payments/payments.module';
+import { StripeModule } from './stripe/stripe.module';
 import { AdminModule } from './admin/admin.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { SeedModule } from './seed/seed.module';
@@ -16,18 +18,22 @@ import { RolesGuard } from './common/guards/roles.guard';
 import appConfig from './config/app.config';
 import databaseConfig from './config/database.config';
 import jwtConfig from './config/jwt.config';
+import stripeConfig from './config/stripe.config';
 
 @Module({
   imports: [
     // ── Config (global) ──────────────────────────────────────────────────────
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, databaseConfig, jwtConfig],
+      load: [appConfig, databaseConfig, jwtConfig, stripeConfig],
       envFilePath: ['.env', '.env.local'],
     }),
 
     // ── Database ─────────────────────────────────────────────────────────────
     DatabaseModule,
+
+    // ── Payment gateway (global — injectable without an explicit import) ─────
+    StripeModule,
 
     // ── Feature modules ───────────────────────────────────────────────────────
     AuthModule,
@@ -36,6 +42,7 @@ import jwtConfig from './config/jwt.config';
     CategoriesModule,
     CartModule,
     OrdersModule,
+    PaymentsModule,
     AdminModule,
     DashboardModule,
     SeedModule,

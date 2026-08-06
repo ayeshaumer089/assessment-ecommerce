@@ -15,6 +15,10 @@ export const QUERY_KEYS = {
   // Cart
   CART: ['cart'] as const,
 
+  // Payments
+  PAYMENT_CONFIG: ['payments', 'config'] as const,
+  PAYMENT_INTENT: ['payments', 'intent'] as const,
+
   // Recommendations
   RECOMMENDATIONS: (id: string) => ['products', id, 'recommendations'] as const,
 
