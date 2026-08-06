@@ -57,38 +57,27 @@ export class PaymentsService {
     const currency = this.stripeService.currency;
     const amountMinor = StripeService.toMinorUnits(draft.totalAmount);
 
+    const shipping = dto.shippingAddress
+      ? { shipping: toStripeShipping(dto.shippingAddress) }
+      : {};
+
     const reusable = await this.findReusablePayment(userId);
 
-    let intent: Stripe.PaymentIntent;
+    let intent: Stripe.PaymentIntent | null = reusable
+      ? await this.tryReuseIntent(reusable, amountMinor, userId, draft, shipping)
+      : null;
 
-    if (reusable) {
-      intent = await this.stripeService.client.paymentIntents.update(
-        reusable.paymentIntentId,
-        {
-          amount: amountMinor,
-          metadata: this.buildMetadata(userId, draft),
-          ...(dto.shippingAddress
-            ? { shipping: toStripeShipping(dto.shippingAddress) }
-            : {}),
-        },
-      );
-    } else {
-      intent = await this.stripeService.client.paymentIntents.create(
-        {
-          amount: amountMinor,
-          currency,
-          // Lets Stripe surface whichever methods are enabled on the account
-          // (card, wallets, BNPL) without any further code changes here.
-          automatic_payment_methods: { enabled: true },
-          metadata: this.buildMetadata(userId, draft),
-          description: `ShopSphere order — ${draft.items.length} item(s)`,
-          ...(dto.shippingAddress
-            ? { shipping: toStripeShipping(dto.shippingAddress) }
-            : {}),
-        },
-        // Guards against double-submits creating two intents for one cart.
-        { idempotencyKey: `pi_${userId}_${amountMinor}_${cartFingerprint(draft)}` },
-      );
+    if (!intent) {
+      intent = await this.stripeService.client.paymentIntents.create({
+        amount: amountMinor,
+        currency,
+        // Lets Stripe surface whichever methods are enabled on the account
+        // (card, wallets, BNPL) without any further code changes here.
+        automatic_payment_methods: { enabled: true },
+        metadata: this.buildMetadata(userId, draft),
+        description: `ShopSphere order — ${draft.items.length} item(s)`,
+        ...shipping,
+      });
     }
 
     await this.upsertPaymentRecord(userId, intent, draft, dto);
@@ -123,6 +112,14 @@ export class PaymentsService {
       record.card = card;
     }
     record.status = intent.status;
+
+    // The browser hits this right after confirming, which makes it the earliest
+    // reliable point to refresh the record when no webhook is configured.
+    if (!record.orderId) {
+      const order = await this.ordersService.findByPaymentIntent(intent.id);
+      if (order) record.orderId = order._id as Types.ObjectId;
+    }
+
     await record.save();
 
     return {
@@ -299,6 +296,79 @@ export class PaymentsService {
       .exec();
   }
 
+  /**
+   * Re-prices a previously opened intent, but only after asking Stripe what
+   * state it is actually in.
+   *
+   * Our stored status is a cache, and it goes stale whenever a payment
+   * completes without a webhook reaching us — which is the normal case in
+   * local development. Trusting it would mean trying to re-price an intent
+   * that has already been paid, which Stripe rejects outright. Anything
+   * unexpected here degrades to "open a fresh intent" rather than failing the
+   * customer's checkout.
+   */
+  private async tryReuseIntent(
+    record: PaymentDocument,
+    amountMinor: number,
+    userId: string,
+    draft: OrderDraft,
+    shipping: Record<string, any>,
+  ): Promise<Stripe.PaymentIntent | null> {
+    try {
+      const live = await this.stripeService.client.paymentIntents.retrieve(
+        record.paymentIntentId,
+      );
+
+      if (!REUSABLE_STATUSES.includes(live.status)) {
+        await this.reconcileStaleRecord(record, live);
+        return null;
+      }
+
+      return await this.stripeService.client.paymentIntents.update(
+        record.paymentIntentId,
+        {
+          amount: amountMinor,
+          metadata: this.buildMetadata(userId, draft),
+          ...shipping,
+        },
+      );
+    } catch (err: any) {
+      this.logger.warn(
+        `Could not reuse intent ${record.paymentIntentId} (${err?.message}). ` +
+          `Opening a new one.`,
+      );
+      return null;
+    }
+  }
+
+  /**
+   * Brings a stale local record back in line with Stripe, and links the order
+   * the browser created directly if the webhook never told us about it.
+   */
+  private async reconcileStaleRecord(
+    record: PaymentDocument,
+    live: Stripe.PaymentIntent,
+  ): Promise<void> {
+    const order = await this.ordersService.findByPaymentIntent(live.id);
+
+    await this.paymentModel
+      .updateOne(
+        { _id: record._id },
+        {
+          $set: {
+            status: live.status,
+            ...(order ? { orderId: order._id } : {}),
+          },
+        },
+      )
+      .exec();
+
+    this.logger.debug(
+      `Reconciled payment ${live.id}: status → ${live.status}` +
+        (order ? `, linked order ${order._id}` : ''),
+    );
+  }
+
   private async upsertPaymentRecord(
     userId: string,
     intent: Stripe.PaymentIntent,
@@ -417,13 +487,4 @@ function toStripeShipping(address: Record<string, any>) {
       ...(country ? { country } : {}),
     },
   };
-}
-
-/** Stable per-basket key so retries of the same cart reuse one intent. */
-function cartFingerprint(draft: OrderDraft): string {
-  return draft.items
-    .map((i) => `${i.productId.toString()}x${i.quantity}`)
-    .sort()
-    .join('|')
-    .slice(0, 180);
 }
