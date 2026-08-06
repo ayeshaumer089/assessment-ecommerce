@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronUp, Package } from 'lucide-react'
-import { useAllOrders, useUpdateOrderStatus } from '@/hooks/useOrders'
-import { formatCurrency, formatDate, formatOrderStatus } from '@/utils/formatters'
-import { toast } from '@/store/toastStore'
+import { useAllOrders, useUpdateOrderStatus } from '@/hooks'
+import { formatCurrency, formatDate, formatOrderStatus } from '@/utils'
+import { toast } from '@/store'
 import type { Order, OrderStatus } from '@/types'
 
 const ALL_STATUSES: OrderStatus[] = ['pending', 'processing', 'shipped', 'delivered', 'cancelled']

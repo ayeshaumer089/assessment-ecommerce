@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 import type { User } from '@/types'
 import { authService, type LoginCredentials, type SignupPayload } from '@/services/authService'
-import { useCartStore } from '@/store/cartStore'
+import { useCartStore } from '@/store'
 
 function resetCart() {
   useCartStore.setState({ cart: null, items: [] })

@@ -1,17 +1,12 @@
 import { useState, useCallback } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import {
-  Star, ShoppingCart, Minus, Plus, ChevronRight, Check,
-  Truck, RotateCcw, ShieldCheck, Package, ArrowLeft,
-  ChevronLeft, ChevronRight as ChevronRightIcon, Sparkles,
-} from 'lucide-react'
-import { useProduct } from '@/hooks/useProducts'
-import { useCart } from '@/hooks/useCart'
-import { ROUTES } from '@/constants/routes'
-import { formatCurrency, formatDate } from '@/utils/formatters'
+import { Star, ShoppingCart, Minus, Plus, ChevronRight, Check, Truck, RotateCcw, ShieldCheck, Package, ArrowLeft, ChevronLeft, ChevronRight as ChevronRightIcon, Sparkles } from 'lucide-react'
+import { useProduct, useCart } from '@/hooks'
+import { ROUTES } from '@/constants'
+import { formatCurrency, formatDate } from '@/utils'
 import ErrorState from '@/components/ui/ErrorState'
 import Button from '@/components/ui/Button'
-import RecommendedProducts from '@/components/common/RecommendedProducts'
+import { RecommendedProducts } from '@/components/product'
 
 // ── Skeleton ─────────────────────────────────────────────────────────────────
 function ProductDetailSkeleton() {

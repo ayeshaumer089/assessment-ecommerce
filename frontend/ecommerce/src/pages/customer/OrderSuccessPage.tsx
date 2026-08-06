@@ -1,7 +1,7 @@
 import { Link, useLocation, Navigate } from 'react-router-dom'
 import { Package, Clock, ShoppingBag, MapPin, CreditCard } from 'lucide-react'
-import { ROUTES } from '@/constants/routes'
-import { formatCurrency } from '@/utils/formatters'
+import { ROUTES } from '@/constants'
+import { formatCurrency } from '@/utils'
 import type { Order } from '@/types'
 
 function addBusinessDays(date: Date, days: number): Date {

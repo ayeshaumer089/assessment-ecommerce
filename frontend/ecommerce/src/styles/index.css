@@ -1,0 +1,24 @@
+/* ════════════════════════════════════════════════════════════════
+   Global stylesheet entry point.
+
+   Partials are imported in the exact cascade order they previously
+   appeared in, so specificity and override behaviour are unchanged:
+
+     theme/       design tokens exposed to Tailwind via @theme
+     base/        element resets, animations, a11y primitives
+     components/  styles owned by a shared component / layout
+     pages/       styles scoped to a single route (.sz-home, .sz-detail…)
+   ════════════════════════════════════════════════════════════ */
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap');
+
+@import "./components/navbar.css";
+@import "./components/footer.css";
+@import "./pages/admin-login.css";
+@import "./theme/tokens.css";
+@import "./base/reset.css";
+@import "./base/animations.css";
+@import "./base/accessibility.css";
+@import "./pages/home.css";
+@import "./pages/product-detail.css";
+@import "./pages/products.css";

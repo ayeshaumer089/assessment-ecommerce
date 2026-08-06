@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Users, UserPlus, ShoppingBag, ArrowRight } from 'lucide-react'
-import { ROUTES } from '@/constants/routes'
+import { ROUTES } from '@/constants'
 import Button from '@/components/ui/Button'
 
 const PREVIEW = [

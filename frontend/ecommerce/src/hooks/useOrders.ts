@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { orderService, type CheckoutPayload } from '@/services/orderService'
-import { QUERY_KEYS } from '@/constants/queryKeys'
-import { useAuth } from '@/context/AuthContext'
+import { QUERY_KEYS } from '@/constants'
+import { useAuth } from '@/context'
 import type { OrderStatus, PaymentStatus } from '@/types'
 
 export function useOrders() {

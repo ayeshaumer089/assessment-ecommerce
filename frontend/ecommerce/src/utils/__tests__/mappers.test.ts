@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { mapProduct, mapAuthUser, mapDJUser } from '@/utils/mappers'
+import { mapProduct, mapAuthUser, mapDJUser } from '@/utils'
 import type { DJProduct, DJAuthResponse, DJUser } from '@/types/dummyjson'
 
 const djProduct: DJProduct = {

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { useCartStore } from '@/store/cartStore'
+import { useCartStore } from '@/store'
 import { cartService } from '@/services/cartService'
 import type { Cart, Product } from '@/types'
 

@@ -1,7 +1,7 @@
 import { createPortal } from 'react-dom'
 import { X, CheckCircle2, AlertCircle, Info, AlertTriangle } from 'lucide-react'
-import { useToastStore } from '@/store/toastStore'
-import type { ToastType } from '@/store/toastStore'
+import { useToastStore } from '@/store'
+import type { ToastType } from '@/store'
 
 const ICON: Record<ToastType, React.ReactNode> = {
   success: <CheckCircle2 size={17} />,

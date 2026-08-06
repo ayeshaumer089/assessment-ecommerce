@@ -1,6 +1,6 @@
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { productService } from '@/services/productService'
-import { QUERY_KEYS } from '@/constants/queryKeys'
+import { QUERY_KEYS } from '@/constants'
 import type { ProductFilters } from '@/types'
 
 export function useProducts(filters: ProductFilters = {}) {

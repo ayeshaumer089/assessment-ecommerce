@@ -1,4 +1,4 @@
-import api from './axiosInstance'
+import api from '@/lib/axiosInstance'
 import type { PaginatedResult, Product, ProductFilters } from '@/types'
 
 function mapProduct(data: any): Product {

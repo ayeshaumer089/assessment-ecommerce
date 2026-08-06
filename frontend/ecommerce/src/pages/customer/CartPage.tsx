@@ -1,9 +1,8 @@
 import { Link } from 'react-router-dom'
 import { Minus, Plus, Trash2, ShoppingBag, ArrowRight } from 'lucide-react'
-import { useCart } from '@/hooks/useCart'
-import { ROUTES } from '@/constants/routes'
-import { formatCurrency } from '@/utils/formatters'
-import { FREE_SHIPPING_THRESHOLD, SHIPPING_COST } from '@/constants/shipping'
+import { useCart } from '@/hooks'
+import { ROUTES, FREE_SHIPPING_THRESHOLD, SHIPPING_COST } from '@/constants'
+import { formatCurrency } from '@/utils'
 import type { CartItem } from '@/types'
 
 function CartItemRow({

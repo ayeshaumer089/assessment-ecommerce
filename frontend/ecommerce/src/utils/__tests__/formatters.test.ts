@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatCurrency, formatDate, formatOrderStatus } from '@/utils/formatters'
+import { formatCurrency, formatDate, formatOrderStatus } from '@/utils'
 
 describe('formatCurrency', () => {
   it('formats a whole-dollar amount', () => {

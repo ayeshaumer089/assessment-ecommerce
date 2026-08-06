@@ -4,10 +4,8 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Plus, Search, Pencil, Trash2, Package, ChevronLeft, ChevronRight } from 'lucide-react'
-import { useProducts, useCategories, useSearchProducts } from '@/hooks/useProducts'
-import { useCreateProduct, useUpdateProduct, useDeleteProduct } from '@/hooks/useAdminProducts'
-import { useDebounce } from '@/hooks/useDebounce'
-import { formatCurrency } from '@/utils/formatters'
+import { useProducts, useCategories, useSearchProducts, useCreateProduct, useUpdateProduct, useDeleteProduct, useDebounce } from '@/hooks'
+import { formatCurrency } from '@/utils'
 import type { Product } from '@/types'
 
 const productSchema = z.object({

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getRecommendations } from '@/utils/recommendation'
+import { getRecommendations } from '@/utils'
 import type { Product } from '@/types'
 
 function makeProduct(overrides: Partial<Product> = {}): Product {

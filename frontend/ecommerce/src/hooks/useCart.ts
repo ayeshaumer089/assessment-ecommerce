@@ -1,8 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useCartStore } from '@/store/cartStore'
-import { toast } from '@/store/toastStore'
-import { QUERY_KEYS } from '@/constants/queryKeys'
-import { useAuth } from '@/context/AuthContext'
+import { useCartStore, toast } from '@/store'
+import { QUERY_KEYS } from '@/constants'
+import { useAuth } from '@/context'
 import type { Product } from '@/types'
 
 /** Fetches the server-side cart for a logged-in user. */

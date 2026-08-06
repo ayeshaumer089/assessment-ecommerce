@@ -1,0 +1,42 @@
+/* ── Admin Login Page ──────────────────────────────────────────── */
+@keyframes sz-alog-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.sz-alog-wrap { animation: sz-alog-rise .5s ease both; }
+.sz-alog-input {
+  width: 100%; background: #0c1120; border: 1px solid #232c45;
+  border-radius: 11px; padding: 12px 14px 12px 38px;
+  font-size: 14px; color: #eef0fa; outline: none; font-family: inherit;
+  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+}
+.sz-alog-input::placeholder { color: #5f6889; }
+.sz-alog-input:focus { border-color: #7a6ffb; box-shadow: 0 0 0 3px rgba(122,111,251,.18); background: #0e1426; }
+.sz-alog-input.err { border-color: rgba(255,104,104,.55); }
+.sz-alog-input.err:focus { border-color: rgba(255,104,104,.8); box-shadow: 0 0 0 3px rgba(255,104,104,.12); }
+.sz-alog-pwd { padding-right: 42px; }
+.sz-alog-submit {
+  width: 100%; border: none; border-radius: 11px; padding: 13px;
+  font-size: 14.5px; font-weight: 600; color: #fff; cursor: pointer;
+  background: linear-gradient(135deg, #5b4ff5, #4338d6);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  box-shadow: 0 12px 24px -10px rgba(91,79,245,.6); font-family: inherit;
+  transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+}
+.sz-alog-submit:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.06); box-shadow: 0 16px 30px -10px rgba(91,79,245,.7); }
+.sz-alog-submit:active:not(:disabled) { transform: translateY(0); }
+.sz-alog-submit:disabled { opacity: .7; cursor: not-allowed; }
+.sz-alog-autofill {
+  width: 100%; margin-top: 10px;
+  background: rgba(122,111,251,.1); border: 1px solid rgba(122,111,251,.3);
+  color: #7a6ffb; font-size: 12.5px; font-weight: 600;
+  padding: 9px; border-radius: 9px; cursor: pointer; font-family: inherit;
+  transition: background .15s ease;
+}
+.sz-alog-autofill:hover { background: rgba(122,111,251,.18); }
+.sz-alog-eye {
+  position: absolute; right: 12px; background: none; border: none;
+  color: #5f6889; cursor: pointer; padding: 4px; display: flex;
+  border-radius: 6px; transition: color .15s ease;
+}
+.sz-alog-eye:hover { color: #eef0fa; }

@@ -1,4 +1,4 @@
-import api from './axiosInstance'
+import api from '@/lib/axiosInstance'
 import type { Address, Order, OrderStatus, PaymentStatus, Product } from '@/types'
 
 export interface CheckoutPayload {

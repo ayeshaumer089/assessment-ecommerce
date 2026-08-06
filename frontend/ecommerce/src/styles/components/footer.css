@@ -1,0 +1,12 @@
+/* ── Footer ────────────────────────────────────────────────────── */
+.sz-footer { background: radial-gradient(700px 300px at 10% 0%, #16204a 0%, transparent 60%), #0a0e1a; color: #8891ac; padding: 48px 32px 0; }
+.sz-footer-grid { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 32px; padding-bottom: 36px; }
+.sz-footer-logo { width: 32px; height: 32px; border-radius: 9px; background: linear-gradient(145deg, #7a6ffb, #4338d6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 14px; box-shadow: 0 6px 16px -6px rgba(91,79,245,.55); flex-shrink: 0; }
+.sz-footer-social { display: flex; gap: 10px; }
+.sz-footer-social a { width: 32px; height: 32px; border-radius: 8px; border: 1px solid #1f2740; display: flex; align-items: center; justify-content: center; color: #8891ac; text-decoration: none; transition: border-color .15s ease, color .15s ease, transform .15s ease; }
+.sz-footer-social a:hover { border-color: #7a6ffb; color: #7a6ffb; transform: translateY(-2px); }
+.sz-footer-col-link { text-decoration: none; font-size: 13.5px; color: #8891ac; transition: color .15s ease, padding-left .15s ease; }
+.sz-footer-col-link:hover { color: #7a6ffb; padding-left: 3px; }
+.sz-footer-bottom { max-width: 1180px; margin: 0 auto; border-top: 1px solid #1f2740; padding: 18px 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+@media (max-width: 780px) { .sz-footer-grid { grid-template-columns: 1fr 1fr; } .sz-footer-brand-col { grid-column: 1 / -1; } }
+@media (max-width: 480px) { .sz-footer-grid { grid-template-columns: 1fr; } .sz-footer-bottom { flex-direction: column; align-items: flex-start; } }

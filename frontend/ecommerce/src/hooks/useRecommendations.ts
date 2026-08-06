@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { productService } from '@/services/productService'
-import { QUERY_KEYS } from '@/constants/queryKeys'
+import { QUERY_KEYS } from '@/constants'
 import type { Product } from '@/types'
 
 export function useRecommendations(source: Product | null, limit = 4) {

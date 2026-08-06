@@ -1,9 +1,6 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
-import {
-  paymentService,
-  type CreatePaymentIntentPayload,
-} from '@/services/paymentService'
-import { QUERY_KEYS } from '@/constants/queryKeys'
+import { paymentService, type CreatePaymentIntentPayload } from '@/services/paymentService'
+import { QUERY_KEYS } from '@/constants'
 
 /** Stripe environment config (publishable key, currency). Cached for the session. */
 export function useStripeConfig() {

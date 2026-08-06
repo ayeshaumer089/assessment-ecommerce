@@ -1,4 +1,4 @@
-import api from './axiosInstance'
+import api from '@/lib/axiosInstance'
 import type { DashboardStats } from '@/types'
 
 export const dashboardService = {

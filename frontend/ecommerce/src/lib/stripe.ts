@@ -1,5 +1,5 @@
 import { loadStripe, type Stripe } from '@stripe/stripe-js'
-import { ENV } from '@/constants/env'
+import { ENV } from '@/config'
 import { paymentService } from '@/services/paymentService'
 
 /**

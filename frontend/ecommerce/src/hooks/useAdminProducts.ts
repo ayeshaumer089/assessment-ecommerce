@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { toast } from '@/store/toastStore'
-import { QUERY_KEYS } from '@/constants/queryKeys'
+import { toast } from '@/store'
+import { QUERY_KEYS } from '@/constants'
 import { productService } from '@/services/productService'
 import type { Product } from '@/types'
 

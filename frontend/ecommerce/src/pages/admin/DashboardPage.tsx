@@ -1,11 +1,8 @@
 import { useMemo } from 'react'
-import {
-  ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend,
-  BarChart, Bar, CartesianGrid, XAxis, YAxis,
-} from 'recharts'
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend, BarChart, Bar, CartesianGrid, XAxis, YAxis } from 'recharts'
 import { TrendingUp, ShoppingBag, Package, BarChart3 } from 'lucide-react'
-import { useAllOrders } from '@/hooks/useOrders'
-import { formatCurrency, formatDate, formatOrderStatus } from '@/utils/formatters'
+import { useAllOrders } from '@/hooks'
+import { formatCurrency, formatDate, formatOrderStatus } from '@/utils'
 import Badge from '@/components/ui/Badge'
 import type { OrderStatus } from '@/types'
 

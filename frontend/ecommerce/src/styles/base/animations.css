@@ -1,0 +1,48 @@
+/* ── Modal / dropdown animations ─────────────────────────────── */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slide-in-from-bottom-4 {
+  from { transform: translateY(1rem); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+@keyframes scale-in {
+  from { transform: scale(0.96) translateY(-4px); opacity: 0; }
+  to   { transform: scale(1) translateY(0);        opacity: 1; }
+}
+
+@keyframes slide-in-right {
+  from { transform: translateX(110%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes fade-up {
+  from { transform: translateY(16px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-12px); }
+}
+
+.animate-in { animation-fill-mode: both; }
+.fade-in    { animation: fade-in 0.2s ease-out; }
+.slide-in-from-bottom-4 { animation: slide-in-from-bottom-4 0.25s cubic-bezier(0.16, 1, 0.3, 1); }
+.scale-in   { animation: scale-in 0.18s cubic-bezier(0.16, 1, 0.3, 1); }
+.duration-200 { animation-duration: 0.2s; }
+
+/* Scroll-reveal: fade + rise in (used by storefront sections) */
+.fade-up    { animation: fade-up 0.55s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.float-slow { animation: float-slow 6s ease-in-out infinite; }
+
+/* ── Toast slide-in ──────────────────────────────────────────── */
+.toast-slide-in { animation: slide-in-right 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+
+/* Bounce animation delay utilities for Loader dots */
+[style*="animation-delay"] {
+  animation-duration: 0.7s;
+}

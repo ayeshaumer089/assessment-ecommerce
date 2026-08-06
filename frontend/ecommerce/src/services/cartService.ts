@@ -1,4 +1,4 @@
-import api from './axiosInstance'
+import api from '@/lib/axiosInstance'
 import type { Cart, CartItem } from '@/types'
 
 function mapCartItem(data: any): CartItem {

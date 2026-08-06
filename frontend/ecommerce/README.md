@@ -74,25 +74,65 @@ stores the returned cart.
 
 ## Project Structure
 
+Layered by responsibility — each folder owns one concern, and dependencies flow
+downward (`pages` → `hooks` → `services` → `lib`), never back up.
+
 ```
 src/
-├── app/            React Query client config
-├── components/
-│   ├── common/     ErrorBoundary, RecommendedProducts, route guards
-│   ├── layout/     Navbar, Footer, Customer/Admin layouts, sidebar, header
-│   └── ui/         Button, Input, Badge, Modal, Card, ProductCard, toasts
-├── constants/      env, routes, query keys, shipping thresholds
-├── context/        AuthContext
-├── hooks/          useProducts, useCart, useOrders, useAdminProducts, …
-├── pages/
-│   ├── admin/      Dashboard, Products, Orders, Analytics, Customers, login
-│   └── customer/   Products, ProductDetail, Cart, Checkout, Orders, Profile, auth
-├── routes/         createBrowserRouter (lazy + protected routes)
-├── services/       axiosInstance, auth/product/cart/order/dashboard services
-├── store/          cartStore, toastStore
-├── types/          domain types
-└── utils/          formatters, recommendation helper
+├── main.tsx            Vite entry: mounts <App />, loads global CSS
+├── app/                Application shell — App.tsx, React Query client
+├── assets/
+│   ├── images/         Raster art (hero, banners)
+│   └── icons/          SVG icons imported by JS
+├── components/         Reusable, route-agnostic UI
+│   ├── ui/             Design-system primitives (Button, Input, Badge, Modal, …)
+│   ├── common/         Cross-cutting widgets (ErrorBoundary, PageLoader, spinner)
+│   └── product/        Product-domain widgets (ProductCard, RecommendedProducts)
+├── config/             Runtime configuration read from import.meta.env
+├── constants/          Fixed values — routes, query keys, shipping thresholds
+├── context/            React context providers (AuthContext)
+├── hooks/              TanStack Query wrappers + generic hooks (useDebounce, …)
+├── layouts/            Page shells rendered around <Outlet />
+│   ├── customer/       CustomerLayout, Navbar, Footer
+│   └── admin/          AdminLayout, AdminSidebar, AdminHeader
+├── lib/                Configured third-party clients (axios instance, Stripe)
+├── pages/              Route components, one file per screen
+│   ├── public/         Home, NotFound
+│   ├── auth/           Login, Signup, AdminLogin (full-screen, no layout)
+│   ├── customer/       Products, ProductDetail, Cart, Checkout, Orders, Profile
+│   └── admin/          Dashboard, Products, Orders, Analytics, Customers
+├── routes/             router.tsx (lazy routes) + guards/ (Private, Protected)
+├── services/           Domain API modules — one per backend resource
+├── store/              Zustand stores (cartStore, toastStore)
+├── styles/             Global stylesheet, split by scope
+│   ├── theme/          Design tokens exposed to Tailwind via @theme
+│   ├── base/           Resets, animations, accessibility primitives
+│   ├── components/     Styles owned by a shared component or layout
+│   └── pages/          Route-scoped styles (.sz-home, .sz-detail, …)
+├── types/              Shared domain + API response types
+└── utils/              Pure helpers (formatters, mappers, recommendation)
 ```
+
+### Import conventions
+
+The `@/*` alias points at `src/`. Most folders expose an `index.ts` barrel, so
+import from the module root:
+
+```ts
+import { ROUTES } from '@/constants'
+import { useCart, useOrders } from '@/hooks'
+```
+
+Three groups are imported by file path on purpose:
+
+| Group | Why |
+|---|---|
+| `pages/` | Barrelling them would defeat route-level code splitting |
+| `components/ui/` | Keeps each primitive in its own chunk instead of the eager bundle |
+| `services/`, `lib/` | Lets a test mock one module without pulling in the HTTP layer |
+
+Files inside a folder import their siblings relatively (`./Navbar`) rather than
+through their own barrel, which keeps the module free of import cycles.
 
 ---
 

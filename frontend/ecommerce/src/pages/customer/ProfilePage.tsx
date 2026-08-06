@@ -1,12 +1,9 @@
 import { Link } from 'react-router-dom'
-import {
-  Mail, User as UserIcon, ShieldCheck, Calendar, Package,
-  ShoppingBag, Wallet, ChevronRight, LogOut, AtSign,
-} from 'lucide-react'
-import { useAuth } from '@/context/AuthContext'
-import { useOrders } from '@/hooks/useOrders'
-import { ROUTES } from '@/constants/routes'
-import { formatCurrency, formatDate } from '@/utils/formatters'
+import { Mail, User as UserIcon, ShieldCheck, Calendar, Package, ShoppingBag, Wallet, ChevronRight, LogOut, AtSign } from 'lucide-react'
+import { useAuth } from '@/context'
+import { useOrders } from '@/hooks'
+import { ROUTES } from '@/constants'
+import { formatCurrency, formatDate } from '@/utils'
 import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 

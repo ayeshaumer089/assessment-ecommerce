@@ -3,24 +3,13 @@ import { useNavigate, Navigate, Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import {
-  Elements,
-  PaymentElement,
-  useElements,
-  useStripe,
-} from '@stripe/react-stripe-js'
-import {
-  MapPin, CreditCard, ClipboardCheck, CheckCircle,
-  Lock, Tag, Truck, ArrowLeft, ChevronRight, Loader2,
-} from 'lucide-react'
-import { useCart } from '@/hooks/useCart'
-import { useCheckout } from '@/hooks/useOrders'
-import { useCreatePaymentIntent } from '@/hooks/usePayment'
+import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js'
+import { MapPin, CreditCard, ClipboardCheck, CheckCircle, Lock, Tag, Truck, ArrowLeft, ChevronRight, Loader2 } from 'lucide-react'
+import { useCart, useCheckout, useCreatePaymentIntent } from '@/hooks'
 import { paymentService } from '@/services/paymentService'
 import { getStripe, STRIPE_APPEARANCE } from '@/lib/stripe'
-import { ROUTES } from '@/constants/routes'
-import { formatCurrency } from '@/utils/formatters'
-import { FREE_SHIPPING_THRESHOLD, SHIPPING_COST } from '@/constants/shipping'
+import { ROUTES, FREE_SHIPPING_THRESHOLD, SHIPPING_COST } from '@/constants'
+import { formatCurrency } from '@/utils'
 import type { CartItem } from '@/types'
 
 // Stripe.js is loaded once for the whole module — see lib/stripe.ts.
