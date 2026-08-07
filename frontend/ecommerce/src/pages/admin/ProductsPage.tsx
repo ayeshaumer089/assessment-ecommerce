@@ -1,11 +1,28 @@
 import { useState, useEffect } from 'react'
-import { createPortal } from 'react-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Plus, Search, Pencil, Trash2, Package, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Pencil, Trash2, Package } from 'lucide-react'
 import { useProducts, useCategories, useSearchProducts, useCreateProduct, useUpdateProduct, useDeleteProduct, useDebounce } from '@/hooks'
 import { formatCurrency } from '@/utils'
+import {
+  AdminButton,
+  AdminEmptyState,
+  AdminField,
+  AdminInput,
+  AdminModal,
+  AdminModalBody,
+  AdminModalFooter,
+  AdminModalHeader,
+  AdminPagination,
+  AdminTable,
+  AdminTableRow,
+  AdminTextarea,
+  SearchBar,
+  Select,
+  TablePanel,
+} from '@/common/components'
+import type { AdminTableColumn } from '@/common/components'
 import type { Product } from '@/types'
 
 const productSchema = z.object({
@@ -26,6 +43,16 @@ interface AdminProductPayload {
 }
 
 const LIMIT = 12
+
+const COLUMNS: AdminTableColumn[] = [
+  { label: 'Thumbnail' },
+  { label: 'Product' },
+  { label: 'Price' },
+  { label: 'Discount' },
+  { label: 'Stock' },
+  { label: 'Rating' },
+  { label: 'Actions', align: 'right' },
+]
 
 export default function AdminProductsPage() {
   const [search, setSearch] = useState('')
@@ -85,6 +112,8 @@ export default function AdminProductsPage() {
   const totalPages = data?.totalPages ?? 1
   const products   = data?.items ?? []
 
+  const categoryOptions = categories.map((c) => ({ value: c.slug, label: c.name }))
+
   // Scroll lock while any modal is open
   useEffect(() => {
     const anyOpen = formOpen || !!deleteTarget
@@ -115,20 +144,16 @@ export default function AdminProductsPage() {
       </div>
 
       <div className="sz-search-row">
-        <div className="sz-search-bar">
-          <Search size={15} />
-          <input
-            type="text"
-            placeholder="Search products..."
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-          />
-        </div>
+        <SearchBar
+          value={search}
+          onChange={(value) => { setSearch(value); setPage(1) }}
+          placeholder="Search products..."
+        />
       </div>
 
       <div style={{ fontSize: 13.5, color: 'var(--ink-soft)', marginBottom: 12 }}>{total} products</div>
 
-      <div className="sz-table-panel">
+      <TablePanel>
         {isLoading ? (
           <div style={{ padding: '12px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
             {Array.from({ length: 8 }).map((_, i) => (
@@ -136,223 +161,136 @@ export default function AdminProductsPage() {
             ))}
           </div>
         ) : products.length === 0 ? (
-          <div className="sz-empty-state">
-            <div className="sz-empty-ic"><Package size={28} /></div>
-            <div className="sz-empty-text">
-              No products found
-              {search && (
-                <button
-                  onClick={() => setSearch('')}
-                  style={{ display: 'block', marginTop: 8, color: 'var(--violet)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}
-                >
-                  Clear search
-                </button>
-              )}
-            </div>
-          </div>
+          <AdminEmptyState icon={<Package size={28} />}>
+            No products found
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                style={{ display: 'block', marginTop: 8, color: 'var(--violet)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}
+              >
+                Clear search
+              </button>
+            )}
+          </AdminEmptyState>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr>
-                  {['Thumbnail', 'Product', 'Price', 'Discount', 'Stock', 'Rating', 'Actions'].map((h) => (
-                    <th key={h} style={{ textAlign: h === 'Actions' ? 'right' : 'left', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A93AE', padding: '14px 18px', borderBottom: '1px solid var(--line)', background: '#FBFAFD', whiteSpace: 'nowrap' }}>
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {products.map((product) => (
-                  <ProductRow key={product.id} product={product} onEdit={openEdit} onDelete={openDelete} />
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <AdminTable columns={COLUMNS}>
+            {products.map((product) => (
+              <ProductRow key={product.id} product={product} onEdit={openEdit} onDelete={openDelete} />
+            ))}
+          </AdminTable>
         )}
-      </div>
+      </TablePanel>
 
       {!isLoading && totalPages > 1 && (
-        <div className="sz-pagination">
-          <span className="pg-info">Page {page} of {totalPages}</span>
-          <div className="pg-btns">
-            <button className="sz-btn-pg" onClick={() => setPage((p) => p - 1)} disabled={page <= 1}>
-              <ChevronLeft size={14} /> Previous
-            </button>
-            <button className="sz-btn-pg" onClick={() => setPage((p) => p + 1)} disabled={page >= totalPages}>
-              Next <ChevronRight size={14} />
-            </button>
-          </div>
-        </div>
+        <AdminPagination page={page} totalPages={totalPages} onPage={setPage} />
       )}
 
       {/* ── Add / Edit Modal ── */}
-      {formOpen && createPortal(
-        <div
-          className="adm-overlay"
-          onClick={(e) => { if (e.target === e.currentTarget) closeForm() }}
-        >
-          <div className="adm-modal" role="dialog" aria-modal="true" aria-labelledby="adm-form-title">
+      <AdminModal open={formOpen} onClose={closeForm} labelledBy="adm-form-title">
+        <AdminModalHeader variant="accent" onClose={closeForm}>
+          <h2 id="adm-form-title">{editingProduct ? 'Edit Product' : 'Add Product'}</h2>
+        </AdminModalHeader>
 
-            <div className="adm-modal-header adm-modal-header--accent">
-              <h2 id="adm-form-title">{editingProduct ? 'Edit Product' : 'Add Product'}</h2>
-              <button className="adm-close-btn" onClick={closeForm} aria-label="Close">✕</button>
+        <AdminModalBody>
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <AdminField label="Name" error={errors.name?.message}>
+              <AdminInput invalid={!!errors.name} {...register('name')} />
+            </AdminField>
+
+            <div className="adm-row">
+              <AdminField label="Price" error={errors.price?.message}>
+                <AdminInput invalid={!!errors.price} type="number" step="0.01" {...register('price')} />
+              </AdminField>
+              <AdminField label="Stock" error={errors.stock?.message}>
+                <AdminInput invalid={!!errors.stock} type="number" {...register('stock')} />
+              </AdminField>
             </div>
 
-            <div className="adm-modal-body">
-              <form onSubmit={handleSubmit(onSubmit)}>
-                <div className="adm-field">
-                  <label>Name</label>
-                  <input
-                    className={`adm-input${errors.name ? ' adm-input--err' : ''}`}
-                    {...register('name')}
-                  />
-                  {errors.name && <p className="adm-field-err">{errors.name.message}</p>}
-                </div>
-
-                <div className="adm-row">
-                  <div className="adm-field">
-                    <label>Price</label>
-                    <input
-                      className={`adm-input${errors.price ? ' adm-input--err' : ''}`}
-                      type="number"
-                      step="0.01"
-                      {...register('price')}
-                    />
-                    {errors.price && <p className="adm-field-err">{errors.price.message}</p>}
-                  </div>
-                  <div className="adm-field">
-                    <label>Stock</label>
-                    <input
-                      className={`adm-input${errors.stock ? ' adm-input--err' : ''}`}
-                      type="number"
-                      {...register('stock')}
-                    />
-                    {errors.stock && <p className="adm-field-err">{errors.stock.message}</p>}
-                  </div>
-                </div>
-
-                <div className="adm-field">
-                  <label>Category</label>
-                  {categories.length > 0 ? (
-                    <>
-                      <select
-                        className={`adm-select${errors.category ? ' adm-input--err' : ''}`}
-                        {...register('category')}
-                      >
-                        <option value="">Select a category</option>
-                        {categories.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
-                      </select>
-                      {errors.category && <p className="adm-field-err">{errors.category.message}</p>}
-                    </>
-                  ) : (
-                    <>
-                      <input
-                        className={`adm-input${errors.category ? ' adm-input--err' : ''}`}
-                        {...register('category')}
-                      />
-                      {errors.category && <p className="adm-field-err">{errors.category.message}</p>}
-                    </>
-                  )}
-                </div>
-
-                <div className="adm-field">
-                  <label>Image URL</label>
-                  <input
-                    className={`adm-input${errors.image ? ' adm-input--err' : ''}`}
-                    placeholder="https://example.com/product.jpg"
-                    {...register('image')}
-                  />
-                  {errors.image && <p className="adm-field-err">{errors.image.message}</p>}
-                </div>
-
-                <div className="adm-field" style={{ marginBottom: 0 }}>
-                  <label>Description</label>
-                  <textarea
-                    className={`adm-textarea${errors.description ? ' adm-input--err' : ''}`}
-                    placeholder="Describe the product..."
-                    {...register('description')}
-                  />
-                  {errors.description && <p className="adm-field-err">{errors.description.message}</p>}
-                </div>
-              </form>
-            </div>
-
-            <div className="adm-modal-footer">
-              {mutationError && (
-                <div className="adm-err-banner">{mutationError.message ?? 'Something went wrong.'}</div>
+            <AdminField label="Category" error={errors.category?.message}>
+              {categories.length > 0 ? (
+                <Select
+                  className={`adm-select${errors.category ? ' adm-input--err' : ''}`}
+                  placeholder="Select a category"
+                  options={categoryOptions}
+                  {...register('category')}
+                />
+              ) : (
+                <AdminInput invalid={!!errors.category} {...register('category')} />
               )}
-              <div className="adm-footer-btns">
-                <button className="adm-btn adm-btn-cancel" onClick={closeForm}>Cancel</button>
-                <button
-                  className="adm-btn adm-btn-primary"
-                  disabled={mutationPending}
-                  onClick={handleSubmit(onSubmit)}
-                >
-                  {mutationPending ? 'Saving…' : (editingProduct ? 'Save Changes' : 'Add Product')}
-                </button>
-              </div>
-            </div>
+            </AdminField>
 
-          </div>
-        </div>,
-        document.body,
-      )}
+            <AdminField label="Image URL" error={errors.image?.message}>
+              <AdminInput
+                invalid={!!errors.image}
+                placeholder="https://example.com/product.jpg"
+                {...register('image')}
+              />
+            </AdminField>
+
+            <AdminField label="Description" error={errors.description?.message} style={{ marginBottom: 0 }}>
+              <AdminTextarea
+                invalid={!!errors.description}
+                placeholder="Describe the product..."
+                {...register('description')}
+              />
+            </AdminField>
+          </form>
+        </AdminModalBody>
+
+        <AdminModalFooter error={mutationError && (mutationError.message ?? 'Something went wrong.')}>
+          <AdminButton variant="cancel" onClick={closeForm}>Cancel</AdminButton>
+          <AdminButton
+            variant="primary"
+            disabled={mutationPending}
+            onClick={handleSubmit(onSubmit)}
+          >
+            {mutationPending ? 'Saving…' : (editingProduct ? 'Save Changes' : 'Add Product')}
+          </AdminButton>
+        </AdminModalFooter>
+      </AdminModal>
 
       {/* ── Delete Modal ── */}
-      {!!deleteTarget && createPortal(
-        <div
-          className="adm-overlay"
-          onClick={(e) => { if (e.target === e.currentTarget) closeDelete() }}
-        >
-          <div className="adm-modal adm-modal--sm" role="dialog" aria-modal="true" aria-labelledby="adm-del-title">
-
-            <div className="adm-modal-header adm-modal-header--delete">
-              <div className="adm-del-header-left">
-                <div className="adm-del-icon-wrap">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="#e5484d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="21" height="21">
-                    <path d="M3 6h18" />
-                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                    <line x1="10" y1="11" x2="10" y2="17" />
-                    <line x1="14" y1="11" x2="14" y2="17" />
-                  </svg>
-                </div>
-                <h2 id="adm-del-title">Delete Product</h2>
-              </div>
-              <button className="adm-close-btn" onClick={closeDelete} aria-label="Close">✕</button>
+      <AdminModal open={!!deleteTarget} onClose={closeDelete} labelledBy="adm-del-title" size="sm">
+        <AdminModalHeader variant="delete" onClose={closeDelete}>
+          <div className="adm-del-header-left">
+            <div className="adm-del-icon-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#e5484d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="21" height="21">
+                <path d="M3 6h18" />
+                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                <line x1="10" y1="11" x2="10" y2="17" />
+                <line x1="14" y1="11" x2="14" y2="17" />
+              </svg>
             </div>
-
-            <div className="adm-modal-body adm-modal-body--delete">
-              <p>
-                Are you sure you want to delete{' '}
-                <strong>{deleteTarget.name}</strong>?{' '}
-                This action cannot be undone.
-              </p>
-            </div>
-
-            <div className="adm-modal-footer adm-modal-footer--bordered">
-              {deleteMutation.error && (
-                <div className="adm-err-banner">
-                  {(deleteMutation.error as Error).message ?? 'Failed to delete product.'}
-                </div>
-              )}
-              <div className="adm-footer-btns">
-                <button className="adm-btn adm-btn-cancel" onClick={closeDelete}>Cancel</button>
-                <button
-                  className="adm-btn adm-btn-danger"
-                  disabled={deleteMutation.isPending}
-                  onClick={confirmDelete}
-                >
-                  {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
-                </button>
-              </div>
-            </div>
-
+            <h2 id="adm-del-title">Delete Product</h2>
           </div>
-        </div>,
-        document.body,
-      )}
+        </AdminModalHeader>
+
+        <AdminModalBody variant="delete">
+          <p>
+            Are you sure you want to delete{' '}
+            <strong>{deleteTarget?.name}</strong>?{' '}
+            This action cannot be undone.
+          </p>
+        </AdminModalBody>
+
+        <AdminModalFooter
+          bordered
+          error={
+            deleteMutation.error &&
+            ((deleteMutation.error as Error).message ?? 'Failed to delete product.')
+          }
+        >
+          <AdminButton variant="cancel" onClick={closeDelete}>Cancel</AdminButton>
+          <AdminButton
+            variant="danger"
+            disabled={deleteMutation.isPending}
+            onClick={confirmDelete}
+          >
+            {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
+          </AdminButton>
+        </AdminModalFooter>
+      </AdminModal>
     </div>
   )
 }
@@ -370,10 +308,7 @@ function ProductRow({
   const stockLabel = product.stock === 0 ? 'Out' : product.stock
 
   return (
-    <tr style={{ borderBottom: '1px solid var(--line)', transition: 'background .15s ease', cursor: 'default' }}
-      onMouseEnter={(e) => (e.currentTarget.style.background = '#FAF9FE')}
-      onMouseLeave={(e) => (e.currentTarget.style.background = '')}
-    >
+    <AdminTableRow>
       <td style={{ padding: '14px 18px', verticalAlign: 'middle' }}>
         <div className="sz-thumb">
           <img src={product.image} alt={product.name} loading="lazy" />
@@ -414,6 +349,6 @@ function ProductRow({
           </button>
         </div>
       </td>
-    </tr>
+    </AdminTableRow>
   )
 }

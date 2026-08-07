@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom'
 import { useProducts, useCategories, useCart } from '@/hooks'
 import { ROUTES, FREE_SHIPPING_THRESHOLD } from '@/constants'
 import { formatCurrency } from '@/utils'
+import { Skeleton } from '@/common/components'
+import { SzProductCard } from '@/features/products'
 import type { Product } from '@/types'
 
 // ── Trust / value props (mirrors shopzone.html perks) ─────────────────────────
@@ -91,8 +93,8 @@ function Hero({ heroProduct }: { heroProduct?: Product }) {
           <div className="sz-hero-card" style={{ minHeight: 320 }} aria-hidden>
             <div className="img-wrap" style={{ background: '#2b1d63' }} />
             <div className="sz-hero-card-body">
-              <div className="sz-skel" style={{ height: 14, width: '40%' }} />
-              <div className="sz-skel" style={{ height: 20, width: '70%', marginTop: 8 }} />
+              <Skeleton style={{ height: 14, width: '40%' }} />
+              <Skeleton style={{ height: 20, width: '70%', marginTop: 8 }} />
             </div>
           </div>
         )}
@@ -142,7 +144,7 @@ function Categories() {
         {isLoading ? (
           <div className="sz-cat-grid">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="sz-skel" style={{ height: 138 }} />
+              <Skeleton key={i} style={{ height: 138 }} />
             ))}
           </div>
         ) : (
@@ -166,51 +168,10 @@ function Categories() {
   )
 }
 
-// ── Featured product card (ShopZone style) ────────────────────────────────────
-function FeaturedCard({ product }: { product: Product }) {
-  const { addItem } = useCart()
-  const isOutOfStock = product.stock === 0
-  const rating = Math.round(product.rating || 0)
-  const detailUrl = ROUTES.CUSTOMER.PRODUCT_DETAIL.replace(':id', product.id)
-
-  const handleAdd = (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (isOutOfStock) return
-    addItem(product, 1)
-  }
-
-  return (
-    <div className="sz-prod-card">
-      <Link to={detailUrl} className="sz-prod-img">
-        <img src={product.image} alt={product.name} loading="lazy" />
-      </Link>
-      <div className="sz-prod-body">
-        <div className="sz-prod-cat">{product.category}</div>
-        <Link to={detailUrl}><h3>{product.name}</h3></Link>
-        <div className="sz-prod-desc">{product.description}</div>
-        <div className="sz-prod-rating">
-          <span style={{ color: 'var(--gold)' }}>{'★'.repeat(rating)}</span>
-          {'☆'.repeat(5 - rating)}
-          <span className="rc">({product.reviewCount})</span>
-        </div>
-        <div className="sz-prod-foot">
-          <span className="sz-price">{formatCurrency(product.discountedPrice)}</span>
-          <span className={`sz-stock${isOutOfStock ? ' out' : ''}`}>
-            {isOutOfStock ? 'Out of stock' : 'In stock'}
-          </span>
-        </div>
-        <button className="sz-btn-cart" onClick={handleAdd} disabled={isOutOfStock}>
-          🛒 Add to Cart
-        </button>
-      </div>
-    </div>
-  )
-}
-
 // ── Featured products ─────────────────────────────────────────────────────────
 function FeaturedProducts() {
   const { data, isLoading } = useProducts({ limit: 8, sortBy: 'rating', order: 'desc' })
+  const { addItem } = useCart()
   const products = data?.items ?? []
 
   return (
@@ -230,13 +191,18 @@ function FeaturedProducts() {
         {isLoading ? (
           <div className="sz-prod-grid">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="sz-skel" style={{ height: 360 }} />
+              <Skeleton key={i} style={{ height: 360 }} />
             ))}
           </div>
         ) : (
           <div className="sz-prod-grid">
             {products.map((product) => (
-              <FeaturedCard key={product.id} product={product} />
+              <SzProductCard
+                key={product.id}
+                product={product}
+                variant="featured"
+                onAddToCart={(p) => addItem(p, 1)}
+              />
             ))}
           </div>
         )}

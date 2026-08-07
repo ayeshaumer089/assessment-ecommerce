@@ -1,7 +1,8 @@
 import { Link, useLocation, Navigate } from 'react-router-dom'
-import { Package, Clock, ShoppingBag, MapPin, CreditCard } from 'lucide-react'
+import { Package, Clock, ShoppingBag } from 'lucide-react'
 import { ROUTES } from '@/constants'
 import { formatCurrency } from '@/utils'
+import { AddressPaymentRow, SummaryRow, TotalRow } from '@/common/components'
 import type { Order } from '@/types'
 
 function addBusinessDays(date: Date, days: number): Date {
@@ -83,52 +84,30 @@ export default function OrderSuccessPage() {
 
           {/* Totals */}
           <div className="sz-totals-block">
-            <div className="sz-sum-row">
-              <span>Subtotal</span>
-              <span>{formatCurrency(order.discountedTotal)}</span>
-            </div>
+            <SummaryRow label="Subtotal" value={formatCurrency(order.discountedTotal)} />
             {hasSaving && (
-              <div className="sz-sum-row">
-                <span>Savings</span>
-                <span className="savings">
-                  -{formatCurrency(order.subtotal - order.discountedTotal)}
-                </span>
-              </div>
+              <SummaryRow
+                label="Savings"
+                value={`-${formatCurrency(order.subtotal - order.discountedTotal)}`}
+                valueClassName="savings"
+              />
             )}
-            <div className="sz-sum-row">
-              <span>Shipping</span>
-              <span className={shipping <= 0.01 ? 'free' : ''}>
-                {shipping <= 0.01 ? 'Free' : formatCurrency(shipping)}
-              </span>
-            </div>
+            <SummaryRow
+              label="Shipping"
+              value={shipping <= 0.01 ? 'Free' : formatCurrency(shipping)}
+              valueClassName={shipping <= 0.01 ? 'free' : ''}
+            />
           </div>
 
-          <div className="sz-total-row">
-            <span className="lbl">Total</span>
-            <span className="amt">{formatCurrency(order.total)}</span>
-          </div>
+          <TotalRow value={formatCurrency(order.total)} />
 
           {/* Shipping + Payment */}
-          <div className="sz-ship-pay-row">
-            <div className="sz-sp-block">
-              <div className="sz-sp-label">
-                <MapPin size={11} /> Shipping To
-              </div>
-              <div className="sz-sp-val">
-                {order.shippingAddress.street}<br />
-                {order.shippingAddress.city}, {order.shippingAddress.state}{' '}
-                {order.shippingAddress.zipCode}<br />
-                {order.shippingAddress.country}
-              </div>
-            </div>
-            <div className="sz-sp-block">
-              <div className="sz-sp-label">
-                <CreditCard size={11} /> Payment
-              </div>
-              <div className="sz-sp-val">{order.paymentMethod}</div>
-              <div className="sz-sp-note">Demo checkout — no charge applied</div>
-            </div>
-          </div>
+          <AddressPaymentRow
+            address={order.shippingAddress}
+            paymentMethod={order.paymentMethod}
+            addressLabel="Shipping To"
+            paymentNote="Demo checkout — no charge applied"
+          />
         </div>
       </div>
 

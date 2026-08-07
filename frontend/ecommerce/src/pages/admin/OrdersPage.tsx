@@ -3,6 +3,16 @@ import { ChevronDown, ChevronUp, Package } from 'lucide-react'
 import { useAllOrders, useUpdateOrderStatus } from '@/hooks'
 import { formatCurrency, formatDate, formatOrderStatus } from '@/utils'
 import { toast } from '@/store'
+import {
+  AddressLines,
+  AdminEmptyState,
+  AdminTable,
+  AdminTableRow,
+  Select,
+  TablePanel,
+  Tabs,
+} from '@/common/components'
+import type { AdminTableColumn, TabItem } from '@/common/components'
 import type { Order, OrderStatus } from '@/types'
 
 const ALL_STATUSES: OrderStatus[] = ['pending', 'processing', 'shipped', 'delivered', 'cancelled']
@@ -16,6 +26,18 @@ const STATUS_SEL_CLASS: Record<OrderStatus, string> = {
   delivered:  'sz-sel-delivered',
   cancelled:  'sz-sel-cancelled',
 }
+
+const STATUS_OPTIONS = ALL_STATUSES.map((s) => ({ value: s, label: formatOrderStatus(s) }))
+
+const COLUMNS: AdminTableColumn[] = [
+  { label: 'Order ID' },
+  { label: 'Date' },
+  { label: 'Customer' },
+  { label: 'Items' },
+  { label: 'Total' },
+  { label: 'Status' },
+  { label: '', align: 'right' },
+]
 
 function SkeletonRows() {
   return (
@@ -63,9 +85,7 @@ function ExpandedRow({ order }: { order: Order }) {
             <div>
               <div className="sz-exp-label">Shipping Address</div>
               <div className="sz-exp-val">
-                {order.shippingAddress.street}<br />
-                {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zipCode}<br />
-                {order.shippingAddress.country}
+                <AddressLines address={order.shippingAddress} />
               </div>
             </div>
             <div>
@@ -93,10 +113,7 @@ function OrderRow({
   onStatusChange: (status: OrderStatus) => void
 }) {
   return (
-    <tr style={{ borderBottom: '1px solid var(--line)', transition: 'background .15s ease', cursor: 'default' }}
-      onMouseEnter={(e) => (e.currentTarget.style.background = '#FAF9FE')}
-      onMouseLeave={(e) => (e.currentTarget.style.background = '')}
-    >
+    <AdminTableRow>
       <td style={{ padding: '14px 18px', fontFamily: 'monospace', fontSize: 12, color: 'var(--ink-soft)' }}>
         {order.id.length > 20 ? order.id.slice(0, 20) + '…' : order.id}
       </td>
@@ -113,23 +130,20 @@ function OrderRow({
         {formatCurrency(order.total)}
       </td>
       <td style={{ padding: '14px 18px' }}>
-        <select
+        <Select
           value={order.status}
           disabled={isPending}
           onChange={(e) => onStatusChange(e.target.value as OrderStatus)}
           className={`sz-status-select ${STATUS_SEL_CLASS[order.status]}`}
-        >
-          {ALL_STATUSES.map((s) => (
-            <option key={s} value={s}>{formatOrderStatus(s)}</option>
-          ))}
-        </select>
+          options={STATUS_OPTIONS}
+        />
       </td>
       <td style={{ padding: '14px 18px', textAlign: 'right' }}>
         <button className="sz-expand-btn" onClick={onToggle} aria-label={isExpanded ? 'Collapse' : 'Expand'}>
           {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </button>
       </td>
-    </tr>
+    </AdminTableRow>
   )
 }
 
@@ -146,9 +160,13 @@ export default function AdminOrdersPage() {
 
   const filtered = activeTab === 'all' ? orders : orders.filter((o) => o.status === activeTab)
 
-  const tabs: { key: TabFilter; label: string }[] = [
-    { key: 'all', label: 'All' },
-    ...ALL_STATUSES.map((s) => ({ key: s as TabFilter, label: formatOrderStatus(s) })),
+  const tabs: TabItem<TabFilter>[] = [
+    { key: 'all', label: 'All', count: tabCounts.all },
+    ...ALL_STATUSES.map((s) => ({
+      key: s as TabFilter,
+      label: formatOrderStatus(s),
+      count: tabCounts[s],
+    })),
   ]
 
   function handleStatusChange(order: Order, status: OrderStatus) {
@@ -169,69 +187,39 @@ export default function AdminOrdersPage() {
         <span className="sz-total-badge">{orders.length}</span>
       </div>
 
-      <div className="sz-tabs">
-        {tabs.map(({ key, label }) => (
-          <button
-            key={key}
-            className={`sz-tab${activeTab === key ? ' active' : ''}`}
-            onClick={() => setActiveTab(key)}
-          >
-            {label}
-            <span className="count">{tabCounts[key]}</span>
-          </button>
-        ))}
-      </div>
+      <Tabs tabs={tabs} active={activeTab} onChange={setActiveTab} />
 
-      <div className="sz-table-panel">
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                {['Order ID', 'Date', 'Customer', 'Items', 'Total', 'Status', ''].map((h, i) => (
-                  <th key={i} style={{
-                    textAlign: i === 6 ? 'right' : 'left',
-                    fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
-                    color: '#9A93AE', padding: '14px 18px', borderBottom: '1px solid var(--line)',
-                    background: '#FBFAFD', whiteSpace: 'nowrap',
-                  }}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                <SkeletonRows />
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={7} style={{ padding: 0 }}>
-                    <div className="sz-empty-state">
-                      <div className="sz-empty-ic"><Package size={28} /></div>
-                      <div className="sz-empty-text">No orders found</div>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((order) => (
-                  <>
-                    <OrderRow
-                      key={order.id}
-                      order={order}
-                      isExpanded={expandedId === order.id}
-                      onToggle={() => setExpandedId(expandedId === order.id ? null : order.id)}
-                      isPending={isPending}
-                      onStatusChange={(status) => handleStatusChange(order, status)}
-                    />
-                    {expandedId === order.id && (
-                      <ExpandedRow key={`${order.id}-exp`} order={order} />
-                    )}
-                  </>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <TablePanel>
+        <AdminTable columns={COLUMNS}>
+          {isLoading ? (
+            <SkeletonRows />
+          ) : filtered.length === 0 ? (
+            <tr>
+              <td colSpan={7} style={{ padding: 0 }}>
+                <AdminEmptyState icon={<Package size={28} />}>
+                  No orders found
+                </AdminEmptyState>
+              </td>
+            </tr>
+          ) : (
+            filtered.map((order) => (
+              <>
+                <OrderRow
+                  key={order.id}
+                  order={order}
+                  isExpanded={expandedId === order.id}
+                  onToggle={() => setExpandedId(expandedId === order.id ? null : order.id)}
+                  isPending={isPending}
+                  onStatusChange={(status) => handleStatusChange(order, status)}
+                />
+                {expandedId === order.id && (
+                  <ExpandedRow key={`${order.id}-exp`} order={order} />
+                )}
+              </>
+            ))
+          )}
+        </AdminTable>
+      </TablePanel>
     </div>
   )
 }

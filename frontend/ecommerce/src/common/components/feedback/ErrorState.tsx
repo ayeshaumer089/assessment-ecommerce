@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { AlertTriangle, RefreshCw, WifiOff } from 'lucide-react'
-import Button from './Button'
+import Button from '../buttons/Button'
 
 type ErrorType = 'generic' | 'network' | 'notFound' | 'unauthorized'
 

@@ -1,7 +1,7 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '@/context'
 import { ROUTES } from '@/constants'
-import { PageLoader } from '@/components/common'
+import { PageLoader } from '@/common/components'
 
 interface Props {
   requiredRole?: 'admin' | 'customer'

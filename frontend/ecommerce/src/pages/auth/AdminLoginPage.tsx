@@ -7,7 +7,7 @@ import { ShieldCheck, Eye, EyeOff, Lock, Mail, AlertCircle } from 'lucide-react'
 import { useAuth } from '@/context'
 import { ROUTES } from '@/constants'
 import { ENV } from '@/config'
-import { PageLoader } from '@/components/common'
+import { PageLoader } from '@/common/components'
 
 const schema = z.object({
   email: z.string().email('Enter a valid email').min(1, 'Email is required'),

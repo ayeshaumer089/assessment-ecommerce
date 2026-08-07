@@ -3,8 +3,7 @@ import { RouterProvider } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClient } from './queryClient'
 import { AuthProvider } from '@/context'
-import { ErrorBoundary, PageLoader } from '@/components/common'
-import ToastContainer from '@/components/ui/ToastContainer'
+import { ErrorBoundary, PageLoader, ToastContainer } from '@/common/components'
 import { router } from '@/routes'
 
 export default function App() {

@@ -3,11 +3,12 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Eye, EyeOff, ArrowRight } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { useAuth } from '@/context'
 import { ROUTES } from '@/constants'
 import { getErrorMessage } from '@/utils'
 import { authService } from '@/services/authService'
+import { AuthField, ErrorBanner, PasswordField } from '@/common/components'
 
 const schema = z.object({
   email: z.string().email('Enter a valid email').min(1, 'Email is required'),
@@ -19,7 +20,6 @@ export default function LoginPage() {
   const { login } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const [showPassword, setShowPassword] = useState(false)
   const [serverError, setServerError] = useState('')
 
   const from =
@@ -109,36 +109,26 @@ export default function LoginPage() {
             </button>
           </div>
 
-          {serverError && <div className="sz-auth-err">{serverError}</div>}
+          {serverError && <ErrorBanner variant="auth">{serverError}</ErrorBanner>}
 
           <form onSubmit={handleSubmit(onSubmit)} noValidate>
-            <div className="sz-auth-field">
-              <label>Email</label>
-              <input
-                type="email"
-                placeholder="e.g. customer@example.com"
-                autoComplete="email"
-                autoFocus
-                {...register('email')}
-              />
-              {errors.email && <span className="err">{errors.email.message}</span>}
-            </div>
+            <AuthField
+              label="Email"
+              type="email"
+              placeholder="e.g. customer@example.com"
+              autoComplete="email"
+              autoFocus
+              error={errors.email?.message}
+              {...register('email')}
+            />
 
-            <div className="sz-auth-field">
-              <label>Password</label>
-              <div className="sz-auth-pwd-wrap">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  autoComplete="current-password"
-                  {...register('password')}
-                />
-                <button type="button" className="eye" onClick={() => setShowPassword((v) => !v)}>
-                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                </button>
-              </div>
-              {errors.password && <span className="err">{errors.password.message}</span>}
-            </div>
+            <PasswordField
+              label="Password"
+              placeholder="••••••••"
+              autoComplete="current-password"
+              error={errors.password?.message}
+              {...register('password')}
+            />
 
             <div className="sz-auth-row-between">
               <label className="sz-auth-remember">

@@ -10,6 +10,13 @@ import { paymentService } from '@/services/paymentService'
 import { getStripe, STRIPE_APPEARANCE } from '@/lib/stripe'
 import { ROUTES, FREE_SHIPPING_THRESHOLD, SHIPPING_COST } from '@/constants'
 import { formatCurrency } from '@/utils'
+import {
+  CheckoutField,
+  Divider,
+  ErrorBanner,
+  SummaryRow,
+  TotalRow,
+} from '@/common/components'
 import type { CartItem } from '@/types'
 
 // Stripe.js is loaded once for the whole module — see lib/stripe.ts.
@@ -114,67 +121,32 @@ function CheckoutSummary({ items }: { items: CartItem[] }) {
         ))}
       </div>
 
-      <hr className="sz-divider" />
+      <Divider />
 
-      <div className="sz-sum-row">
-        <span>Subtotal</span>
-        <span className="v">{formatCurrency(subtotal)}</span>
-      </div>
+      <SummaryRow label="Subtotal" value={formatCurrency(subtotal)} valueClassName="v" />
       {savings > 0.01 && (
-        <div className="sz-sum-row">
-          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Tag size={12} /> Savings
-          </span>
-          <span className="savings">-{formatCurrency(savings)}</span>
-        </div>
+        <SummaryRow
+          label={<><Tag size={12} /> Savings</>}
+          labelStyle={{ display: 'flex', alignItems: 'center', gap: 4 }}
+          value={`-${formatCurrency(savings)}`}
+          valueClassName="savings"
+        />
       )}
-      <div className="sz-sum-row">
-        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <Truck size={12} /> Shipping
-        </span>
-        <span className={shipping === 0 ? 'free' : 'v'}>
-          {shipping === 0 ? 'Free' : formatCurrency(shipping)}
-        </span>
-      </div>
+      <SummaryRow
+        label={<><Truck size={12} /> Shipping</>}
+        labelStyle={{ display: 'flex', alignItems: 'center', gap: 4 }}
+        value={shipping === 0 ? 'Free' : formatCurrency(shipping)}
+        valueClassName={shipping === 0 ? 'free' : 'v'}
+      />
 
-      <hr className="sz-divider" />
+      <Divider />
 
-      <div className="sz-total-row">
-        <span className="lbl">Total</span>
-        <span className="amt">{formatCurrency(total)}</span>
-      </div>
-      <div className="sz-tax-note">Tax included</div>
+      <TotalRow value={formatCurrency(total)} note="Tax included" />
 
       <div className="sz-secure-row">
         <Lock size={12} /> Secure 256-bit SSL encryption
       </div>
     </aside>
-  )
-}
-
-// ── Field helper ──────────────────────────────────────────────────────────────
-function Field({
-  label,
-  optional,
-  error,
-  children,
-  full,
-}: {
-  label: string
-  optional?: boolean
-  error?: string
-  children: React.ReactNode
-  full?: boolean
-}) {
-  return (
-    <div className={`sz-field${full ? ' full' : ''}`}>
-      <label>
-        {label}
-        {optional && <span className="opt">Optional</span>}
-      </label>
-      {children}
-      {error && <span className="error">{error}</span>}
-    </div>
   )
 }
 
@@ -198,36 +170,36 @@ function ShippingForm({
       <div className="sz-panel-sub">Where should we deliver your order?</div>
 
       <div className="sz-form-grid">
-        <Field label="First Name" error={errors.firstName?.message}>
+        <CheckoutField label="First Name" error={errors.firstName?.message}>
           <input type="text" placeholder="John" {...register('firstName')} />
-        </Field>
-        <Field label="Last Name" error={errors.lastName?.message}>
+        </CheckoutField>
+        <CheckoutField label="Last Name" error={errors.lastName?.message}>
           <input type="text" placeholder="Doe" {...register('lastName')} />
-        </Field>
-        <Field label="Email Address" error={errors.email?.message} full>
+        </CheckoutField>
+        <CheckoutField label="Email Address" error={errors.email?.message} full>
           <input type="email" placeholder="john@example.com" {...register('email')} />
-        </Field>
-        <Field label="Phone Number" optional error={errors.phone?.message} full>
+        </CheckoutField>
+        <CheckoutField label="Phone Number" optional error={errors.phone?.message} full>
           <input type="text" placeholder="+1 (555) 000-0000" {...register('phone')} />
-        </Field>
-        <Field label="Street Address" error={errors.street?.message} full>
+        </CheckoutField>
+        <CheckoutField label="Street Address" error={errors.street?.message} full>
           <input type="text" placeholder="123 Main Street" {...register('street')} />
-        </Field>
-        <Field label="Apartment / Suite" optional error={errors.apt?.message} full>
+        </CheckoutField>
+        <CheckoutField label="Apartment / Suite" optional error={errors.apt?.message} full>
           <input type="text" placeholder="Apt 4B" {...register('apt')} />
-        </Field>
-        <Field label="City" error={errors.city?.message}>
+        </CheckoutField>
+        <CheckoutField label="City" error={errors.city?.message}>
           <input type="text" placeholder="New York" {...register('city')} />
-        </Field>
-        <Field label="State" error={errors.state?.message}>
+        </CheckoutField>
+        <CheckoutField label="State" error={errors.state?.message}>
           <input type="text" placeholder="NY" {...register('state')} />
-        </Field>
-        <Field label="ZIP Code" error={errors.zipCode?.message}>
+        </CheckoutField>
+        <CheckoutField label="ZIP Code" error={errors.zipCode?.message}>
           <input type="text" placeholder="10001" {...register('zipCode')} />
-        </Field>
-        <Field label="Country" error={errors.country?.message}>
+        </CheckoutField>
+        <CheckoutField label="Country" error={errors.country?.message}>
           <input type="text" placeholder="United States" {...register('country')} />
-        </Field>
+        </CheckoutField>
       </div>
 
       <button type="submit" className="sz-btn-main">
@@ -340,12 +312,12 @@ function PaymentForm({
             }}
           />
         </div>
-        <Field label="Name on Card" error={errors.nameOnCard?.message} full>
+        <CheckoutField label="Name on Card" error={errors.nameOnCard?.message} full>
           <input type="text" placeholder="John Doe" {...register('nameOnCard')} />
-        </Field>
+        </CheckoutField>
       </div>
 
-      {stripeError && <div className="sz-err-banner">{stripeError}</div>}
+      {stripeError && <ErrorBanner variant="checkout">{stripeError}</ErrorBanner>}
 
       <div className="sz-secure-note">
         <Lock size={13} /> Payments are processed securely by Stripe — card details never touch our servers.
@@ -403,7 +375,7 @@ function PaymentStep({
 
       {intentError ? (
         <>
-          <div className="sz-err-banner">{intentError}</div>
+          <ErrorBanner variant="checkout">{intentError}</ErrorBanner>
           <div className="sz-btn-row">
             <button type="button" className="sz-btn-back" onClick={onBack}>
               <ArrowLeft size={16} /> Back
@@ -469,7 +441,7 @@ function ReviewStep({
         </div>
       </div>
 
-      {error && <div className="sz-err-banner">{error}</div>}
+      {error && <ErrorBanner variant="checkout">{error}</ErrorBanner>}
 
       <div className="sz-btn-row">
         <button type="button" className="sz-btn-back" onClick={onBack} disabled={isPlacing}>

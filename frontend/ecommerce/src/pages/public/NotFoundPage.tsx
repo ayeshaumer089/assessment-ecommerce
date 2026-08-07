@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { ROUTES } from '@/constants'
-import Button from '@/components/ui/Button'
+import { Button } from '@/common/components'
 
 export default function NotFoundPage() {
   return (

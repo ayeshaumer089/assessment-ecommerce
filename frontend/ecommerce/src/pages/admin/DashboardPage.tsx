@@ -3,7 +3,14 @@ import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend, BarChart, Ba
 import { TrendingUp, ShoppingBag, Package, BarChart3 } from 'lucide-react'
 import { useAllOrders } from '@/hooks'
 import { formatCurrency, formatDate, formatOrderStatus } from '@/utils'
-import Badge from '@/components/ui/Badge'
+import {
+  AdminPanel,
+  Badge,
+  ChartPlaceholder,
+  StatCard,
+  StatCardSkeleton,
+  TablePanel,
+} from '@/common/components'
 import type { OrderStatus } from '@/types'
 
 const STATUS_COLORS: Record<OrderStatus, string> = {
@@ -22,17 +29,14 @@ const STATUS_BADGE_VARIANT: Record<OrderStatus, 'warning' | 'info' | 'purple' | 
   cancelled:  'default',
 }
 
-function SkeletonCard() {
-  return (
-    <div className="sz-stat-card" style={{ animation: 'fade-in .3s ease' }}>
-      <div className="sz-stat-top">
-        <div style={{ height: 14, width: 100, background: '#ECE8F6', borderRadius: 6 }} />
-        <div style={{ width: 38, height: 38, borderRadius: 11, background: '#ECE8F6' }} />
-      </div>
-      <div style={{ height: 28, width: 120, background: '#ECE8F6', borderRadius: 8 }} />
-    </div>
-  )
-}
+const HEADING_STYLE = {
+  fontFamily: "'Fraunces', serif",
+  fontSize: 30,
+  fontWeight: 600,
+  letterSpacing: '-0.01em',
+  marginBottom: 26,
+  color: 'var(--ink)',
+} as const
 
 export default function DashboardPage() {
   const { data: orders = [], isLoading } = useAllOrders()
@@ -74,74 +78,64 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <div className="sz-admin">
-        <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: 30, fontWeight: 600, letterSpacing: '-0.01em', marginBottom: 26, color: 'var(--ink)' }}>Dashboard</h1>
+        <h1 style={HEADING_STYLE}>Dashboard</h1>
         <div className="sz-stat-grid">
-          {[1, 2, 3, 4].map((i) => <SkeletonCard key={i} />)}
+          {[1, 2, 3, 4].map((i) => <StatCardSkeleton key={i} />)}
         </div>
         <div className="sz-chart-row">
           {[1, 2].map((i) => (
-            <div key={i} className="sz-panel" style={{ animation: 'fade-in .3s ease' }}>
+            <AdminPanel key={i} style={{ animation: 'fade-in .3s ease' }}>
               <div style={{ height: 16, width: 160, background: '#ECE8F6', borderRadius: 6, marginBottom: 18 }} />
               <div style={{ height: 260, background: '#F8F7FB', borderRadius: 14 }} />
-            </div>
+            </AdminPanel>
           ))}
         </div>
-        <div className="sz-table-panel">
-          <div className="sz-table-panel-head">Recent Orders</div>
+        <TablePanel heading="Recent Orders">
           <div style={{ padding: '0 24px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
             {[1, 2, 3].map((i) => <div key={i} style={{ height: 40, background: '#F8F7FB', borderRadius: 8 }} />)}
           </div>
-        </div>
+        </TablePanel>
       </div>
     )
   }
 
   return (
     <div className="sz-admin">
-      <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: 30, fontWeight: 600, letterSpacing: '-0.01em', marginBottom: 26, color: 'var(--ink)' }}>
-        Dashboard
-      </h1>
+      <h1 style={HEADING_STYLE}>Dashboard</h1>
 
       {/* Stat cards */}
       <div className="sz-stat-grid">
-        <div className="sz-stat-card">
-          <div className="sz-stat-top">
-            <span className="sz-stat-label">Total Sales</span>
-            <span className="sz-stat-ic ic-violet"><TrendingUp size={18} /></span>
-          </div>
-          <div className="sz-stat-val">{formatCurrency(stats.totalSales)}</div>
-        </div>
-        <div className="sz-stat-card">
-          <div className="sz-stat-top">
-            <span className="sz-stat-label">Total Orders</span>
-            <span className="sz-stat-ic ic-mint"><ShoppingBag size={18} /></span>
-          </div>
-          <div className="sz-stat-val">{stats.totalOrders}</div>
-        </div>
-        <div className="sz-stat-card">
-          <div className="sz-stat-top">
-            <span className="sz-stat-label">Active Orders</span>
-            <span className="sz-stat-ic ic-blue"><Package size={18} /></span>
-          </div>
-          <div className="sz-stat-val">{stats.activeOrders}</div>
-        </div>
-        <div className="sz-stat-card">
-          <div className="sz-stat-top">
-            <span className="sz-stat-label">Avg Order Value</span>
-            <span className="sz-stat-ic ic-gold"><BarChart3 size={18} /></span>
-          </div>
-          <div className="sz-stat-val">{formatCurrency(stats.avgOrderValue)}</div>
-        </div>
+        <StatCard
+          label="Total Sales"
+          value={formatCurrency(stats.totalSales)}
+          icon={<TrendingUp size={18} />}
+          tone="violet"
+        />
+        <StatCard
+          label="Total Orders"
+          value={stats.totalOrders}
+          icon={<ShoppingBag size={18} />}
+          tone="mint"
+        />
+        <StatCard
+          label="Active Orders"
+          value={stats.activeOrders}
+          icon={<Package size={18} />}
+          tone="blue"
+        />
+        <StatCard
+          label="Avg Order Value"
+          value={formatCurrency(stats.avgOrderValue)}
+          icon={<BarChart3 size={18} />}
+          tone="gold"
+        />
       </div>
 
       {/* Charts */}
       <div className="sz-chart-row">
-        <div className="sz-panel">
-          <h3>Order Status Distribution</h3>
+        <AdminPanel title="Order Status Distribution">
           {orders.length === 0 ? (
-            <div style={{ height: 260, border: '1.5px dashed var(--line)', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8, color: '#B4AECB', fontSize: 13.5, fontWeight: 500, background: '#FBFAFD' }}>
-              <span style={{ fontSize: 26 }}>◔</span> No order data yet
-            </div>
+            <ChartPlaceholder glyph="◔" message="No order data yet" />
           ) : (
             <ResponsiveContainer width="100%" height={260}>
               <PieChart>
@@ -169,14 +163,11 @@ export default function DashboardPage() {
               </span>
             ))}
           </div>
-        </div>
+        </AdminPanel>
 
-        <div className="sz-panel">
-          <h3>Top 5 Products by Revenue</h3>
+        <AdminPanel title="Top 5 Products by Revenue">
           {topProductsData.length === 0 ? (
-            <div style={{ height: 260, border: '1.5px dashed var(--line)', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8, color: '#B4AECB', fontSize: 13.5, fontWeight: 500, background: '#FBFAFD' }}>
-              <span style={{ fontSize: 26 }}>▤</span> No revenue data yet
-            </div>
+            <ChartPlaceholder glyph="▤" message="No revenue data yet" />
           ) : (
             <ResponsiveContainer width="100%" height={260}>
               <BarChart layout="vertical" data={topProductsData} margin={{ left: 0, right: 16, top: 4, bottom: 4 }}>
@@ -188,12 +179,11 @@ export default function DashboardPage() {
               </BarChart>
             </ResponsiveContainer>
           )}
-        </div>
+        </AdminPanel>
       </div>
 
       {/* Recent orders table */}
-      <div className="sz-table-panel">
-        <div className="sz-table-panel-head">Recent Orders</div>
+      <TablePanel heading="Recent Orders">
         <table className="sz-orders-table">
           <thead>
             <tr>
@@ -229,7 +219,7 @@ export default function DashboardPage() {
             ))}
           </tbody>
         </table>
-      </div>
+      </TablePanel>
     </div>
   )
 }

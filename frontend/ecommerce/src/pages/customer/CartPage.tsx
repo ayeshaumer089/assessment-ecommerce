@@ -1,8 +1,16 @@
 import { Link } from 'react-router-dom'
-import { Minus, Plus, Trash2, ShoppingBag, ArrowRight } from 'lucide-react'
+import { Trash2, ShoppingBag, ArrowRight } from 'lucide-react'
 import { useCart } from '@/hooks'
 import { ROUTES, FREE_SHIPPING_THRESHOLD, SHIPPING_COST } from '@/constants'
 import { formatCurrency } from '@/utils'
+import {
+  Divider,
+  PageHeader,
+  QuantityControl,
+  SummaryRow,
+  SzEmptyState,
+  TotalRow,
+} from '@/common/components'
 import type { CartItem } from '@/types'
 
 function CartItemRow({
@@ -41,23 +49,11 @@ function CartItemRow({
           )}
         </div>
 
-        <div className="sz-qty-control">
-          <button
-            onClick={() => onUpdateQty(product.id, quantity - 1)}
-            disabled={quantity <= 1}
-            aria-label="Decrease quantity"
-          >
-            <Minus size={13} />
-          </button>
-          <span className="qval">{quantity}</span>
-          <button
-            onClick={() => onUpdateQty(product.id, quantity + 1)}
-            disabled={quantity >= product.stock}
-            aria-label="Increase quantity"
-          >
-            <Plus size={13} />
-          </button>
-        </div>
+        <QuantityControl
+          value={quantity}
+          max={product.stock}
+          onChange={(next) => onUpdateQty(product.id, next)}
+        />
       </div>
 
       <div className="sz-item-right">
@@ -104,32 +100,29 @@ function OrderSummary({
         </div>
       )}
 
-      <div className="sz-sum-row">
-        <span>Subtotal ({itemCount} {itemCount === 1 ? 'item' : 'items'})</span>
-        <span className="v">{formatCurrency(subtotal)}</span>
-      </div>
+      <SummaryRow
+        label={<>Subtotal ({itemCount} {itemCount === 1 ? 'item' : 'items'})</>}
+        value={formatCurrency(subtotal)}
+        valueClassName="v"
+      />
 
       {savings > 0.01 && (
-        <div className="sz-sum-row">
-          <span>Savings</span>
-          <span className="savings">-{formatCurrency(savings)}</span>
-        </div>
+        <SummaryRow
+          label="Savings"
+          value={`-${formatCurrency(savings)}`}
+          valueClassName="savings"
+        />
       )}
 
-      <div className="sz-sum-row">
-        <span>Shipping</span>
-        <span className={shipping === 0 ? 'free' : 'v'}>
-          {shipping === 0 ? 'Free' : formatCurrency(shipping)}
-        </span>
-      </div>
+      <SummaryRow
+        label="Shipping"
+        value={shipping === 0 ? 'Free' : formatCurrency(shipping)}
+        valueClassName={shipping === 0 ? 'free' : 'v'}
+      />
 
-      <hr className="sz-divider" />
+      <Divider />
 
-      <div className="sz-total-row">
-        <span className="lbl">Total</span>
-        <span className="amt">{formatCurrency(total)}</span>
-      </div>
-      <div className="sz-tax-note">Tax included</div>
+      <TotalRow value={formatCurrency(total)} note="Tax included" />
 
       <Link to={ROUTES.CUSTOMER.CHECKOUT}>
         <button className="sz-btn-checkout">
@@ -153,18 +146,18 @@ function OrderSummary({
 
 function EmptyCart() {
   return (
-    <div className="sz-empty">
-      <div className="icon-wrap">
-        <ShoppingBag size={40} />
-      </div>
-      <h2>Your cart is empty</h2>
-      <p>Looks like you haven&apos;t added anything yet.</p>
-      <Link to={ROUTES.CUSTOMER.PRODUCTS}>
-        <button className="sz-btn-shop">
-          <ShoppingBag size={17} /> Start Shopping
-        </button>
-      </Link>
-    </div>
+    <SzEmptyState
+      icon={<ShoppingBag size={40} />}
+      title="Your cart is empty"
+      description="Looks like you haven't added anything yet."
+      action={
+        <Link to={ROUTES.CUSTOMER.PRODUCTS}>
+          <button className="sz-btn-shop">
+            <ShoppingBag size={17} /> Start Shopping
+          </button>
+        </Link>
+      }
+    />
   )
 }
 
@@ -182,10 +175,10 @@ export default function CartPage() {
 
   return (
     <div className="sz-cart">
-      <div className="sz-page-head">
-        <h1>Shopping Cart</h1>
-        <p>{itemCount} {itemCount === 1 ? 'item' : 'items'} in your cart</p>
-      </div>
+      <PageHeader
+        title="Shopping Cart"
+        subtitle={<>{itemCount} {itemCount === 1 ? 'item' : 'items'} in your cart</>}
+      />
 
       <div className="sz-cart-layout">
         <div className="sz-cart-panel">

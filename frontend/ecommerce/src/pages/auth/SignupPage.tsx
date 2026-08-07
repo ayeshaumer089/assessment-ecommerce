@@ -3,10 +3,11 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Eye, EyeOff, CheckCircle2, Circle } from 'lucide-react'
+import { CheckCircle2, Circle } from 'lucide-react'
 import { useAuth } from '@/context'
 import { ROUTES } from '@/constants'
 import { getErrorMessage } from '@/utils'
+import { AuthField, ErrorBanner, PasswordField } from '@/common/components'
 
 const schema = z
   .object({
@@ -60,8 +61,6 @@ function PasswordStrength({ password }: { password: string }) {
 export default function SignupPage() {
   const { signup } = useAuth()
   const navigate = useNavigate()
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirm,  setShowConfirm]  = useState(false)
   const [serverError,  setServerError]  = useState('')
 
   const {
@@ -125,67 +124,65 @@ export default function SignupPage() {
             <b>Demo mode:</b> New accounts are created via DummyJSON and you&apos;ll be logged in immediately. Credentials won&apos;t persist for future logins.
           </div>
 
-          {serverError && <div className="sz-auth-err">{serverError}</div>}
+          {serverError && <ErrorBanner variant="auth">{serverError}</ErrorBanner>}
 
           <form onSubmit={handleSubmit(onSubmit)} noValidate>
             <div className="sz-auth-field-row">
-              <div className="sz-auth-field">
-                <label>First name</label>
-                <input type="text" placeholder="Emily" autoComplete="given-name" autoFocus {...register('firstName')} />
-                {errors.firstName && <span className="err">{errors.firstName.message}</span>}
-              </div>
-              <div className="sz-auth-field">
-                <label>Last name</label>
-                <input type="text" placeholder="Johnson" autoComplete="family-name" {...register('lastName')} />
-                {errors.lastName && <span className="err">{errors.lastName.message}</span>}
-              </div>
+              <AuthField
+                label="First name"
+                type="text"
+                placeholder="Emily"
+                autoComplete="given-name"
+                autoFocus
+                error={errors.firstName?.message}
+                {...register('firstName')}
+              />
+              <AuthField
+                label="Last name"
+                type="text"
+                placeholder="Johnson"
+                autoComplete="family-name"
+                error={errors.lastName?.message}
+                {...register('lastName')}
+              />
             </div>
 
-            <div className="sz-auth-field">
-              <label>Email</label>
-              <input type="email" placeholder="you@example.com" autoComplete="email" {...register('email')} />
-              {errors.email && <span className="err">{errors.email.message}</span>}
-            </div>
+            <AuthField
+              label="Email"
+              type="email"
+              placeholder="you@example.com"
+              autoComplete="email"
+              error={errors.email?.message}
+              {...register('email')}
+            />
 
-            <div className="sz-auth-field">
-              <label>Username</label>
-              <input type="text" placeholder="e.g. emily_j" autoComplete="username" {...register('username')} />
-              <span className="hint">Lowercase letters, numbers and underscores only</span>
-              {errors.username && <span className="err">{errors.username.message}</span>}
-            </div>
+            <AuthField
+              label="Username"
+              type="text"
+              placeholder="e.g. emily_j"
+              autoComplete="username"
+              hint="Lowercase letters, numbers and underscores only"
+              error={errors.username?.message}
+              {...register('username')}
+            />
 
-            <div className="sz-auth-field">
-              <label>Password</label>
-              <div className="sz-auth-pwd-wrap">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Min 8 chars, uppercase & number"
-                  autoComplete="new-password"
-                  {...register('password')}
-                />
-                <button type="button" className="eye" onClick={() => setShowPassword((v) => !v)}>
-                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                </button>
-              </div>
-              {errors.password && <span className="err">{errors.password.message}</span>}
+            <PasswordField
+              label="Password"
+              placeholder="Min 8 chars, uppercase & number"
+              autoComplete="new-password"
+              error={errors.password?.message}
+              {...register('password')}
+            >
               <PasswordStrength password={passwordValue} />
-            </div>
+            </PasswordField>
 
-            <div className="sz-auth-field">
-              <label>Confirm password</label>
-              <div className="sz-auth-pwd-wrap">
-                <input
-                  type={showConfirm ? 'text' : 'password'}
-                  placeholder="Re-enter your password"
-                  autoComplete="new-password"
-                  {...register('confirmPassword')}
-                />
-                <button type="button" className="eye" onClick={() => setShowConfirm((v) => !v)}>
-                  {showConfirm ? <EyeOff size={15} /> : <Eye size={15} />}
-                </button>
-              </div>
-              {errors.confirmPassword && <span className="err">{errors.confirmPassword.message}</span>}
-            </div>
+            <PasswordField
+              label="Confirm password"
+              placeholder="Re-enter your password"
+              autoComplete="new-password"
+              error={errors.confirmPassword?.message}
+              {...register('confirmPassword')}
+            />
 
             <label className="sz-auth-agree">
               <input type="checkbox" {...register('terms')} />
@@ -200,7 +197,11 @@ export default function SignupPage() {
                 </button>
               </span>
             </label>
-            {errors.terms && <div className="sz-auth-err" style={{ marginTop: 0, marginBottom: 12 }}>{errors.terms.message}</div>}
+            {errors.terms && (
+              <ErrorBanner variant="auth" style={{ marginTop: 0, marginBottom: 12 }}>
+                {errors.terms.message}
+              </ErrorBanner>
+            )}
 
             <button type="submit" className="sz-auth-btn" disabled={isSubmitting}>
               {isSubmitting ? 'Creating account…' : 'Create free account'}

@@ -4,48 +4,13 @@ import { useAuth } from '@/context'
 import { useOrders } from '@/hooks'
 import { ROUTES } from '@/constants'
 import { formatCurrency, formatDate } from '@/utils'
-import Badge from '@/components/ui/Badge'
-import Button from '@/components/ui/Button'
-
-function StatTile({
-  icon, label, value,
-}: {
-  icon: React.ReactNode
-  label: string
-  value: string
-}) {
-  return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-sm font-medium text-gray-500">{label}</p>
-        <span className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-          {icon}
-        </span>
-      </div>
-      <p className="text-2xl font-bold text-gray-900">{value}</p>
-    </div>
-  )
-}
-
-function DetailRow({
-  icon, label, value,
-}: {
-  icon: React.ReactNode
-  label: string
-  value: string
-}) {
-  return (
-    <div className="flex items-center gap-3 py-3.5 border-b border-gray-50 last:border-0">
-      <span className="w-9 h-9 rounded-xl bg-gray-50 text-gray-500 flex items-center justify-center shrink-0">
-        {icon}
-      </span>
-      <div className="min-w-0">
-        <p className="text-xs text-gray-400">{label}</p>
-        <p className="text-sm font-medium text-gray-900 truncate">{value}</p>
-      </div>
-    </div>
-  )
-}
+import {
+  AdminPageHeading,
+  Badge,
+  Button,
+  DetailRow,
+  StatTile,
+} from '@/common/components'
 
 const QUICK_LINKS = [
   { label: 'My Orders', desc: 'Track and manage your orders', icon: Package, to: ROUTES.CUSTOMER.ORDERS },
@@ -70,10 +35,11 @@ export default function ProfilePage() {
   return (
     <div className="max-w-4xl mx-auto">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
-        <p className="text-sm text-gray-500 mt-1">Manage your account and view your activity</p>
-      </div>
+      <AdminPageHeading
+        className="mb-6"
+        title="My Profile"
+        description="Manage your account and view your activity"
+      />
 
       {/* Identity card */}
       <div className="relative overflow-hidden bg-white rounded-2xl border border-gray-100 shadow-sm mb-6">

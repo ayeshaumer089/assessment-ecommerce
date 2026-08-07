@@ -1,34 +1,14 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Star, ShoppingCart, Check } from 'lucide-react'
+import { ShoppingCart, Check } from 'lucide-react'
 import type { Product } from '@/types'
 import { formatCurrency } from '@/utils'
 import { ROUTES } from '@/constants'
+import { StarRating } from '@/common/components'
 
 interface Props {
   product: Product
   onAddToCart?: (product: Product) => void
-}
-
-function StarRating({ rating, count }: { rating: number; count: number }) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <div className="flex items-center gap-0.5">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Star
-            key={i}
-            size={11}
-            className={
-              i < Math.round(rating)
-                ? 'fill-amber-400 text-amber-400'
-                : 'fill-gray-200 text-gray-200'
-            }
-          />
-        ))}
-      </div>
-      <span className="text-[11px] text-gray-400 leading-none">({count})</span>
-    </div>
-  )
 }
 
 export default function ProductCard({ product, onAddToCart }: Props) {

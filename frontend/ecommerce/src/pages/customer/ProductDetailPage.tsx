@@ -1,12 +1,19 @@
 import { useState, useCallback } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { Star, ShoppingCart, Minus, Plus, ChevronRight, Check, Truck, RotateCcw, ShieldCheck, Package, ArrowLeft, ChevronLeft, ChevronRight as ChevronRightIcon, Sparkles } from 'lucide-react'
+import { Star, ShoppingCart, ChevronRight, Check, Truck, RotateCcw, ShieldCheck, Package, ArrowLeft, ChevronLeft, ChevronRight as ChevronRightIcon, Sparkles } from 'lucide-react'
 import { useProduct, useCart } from '@/hooks'
 import { ROUTES } from '@/constants'
 import { formatCurrency, formatDate } from '@/utils'
-import ErrorState from '@/components/ui/ErrorState'
-import Button from '@/components/ui/Button'
-import { RecommendedProducts } from '@/components/product'
+import {
+  Button,
+  Divider,
+  ErrorState,
+  QuantityControl,
+  Skeleton,
+  StarRow,
+  SzStarRating,
+} from '@/common/components'
+import { RecommendedProducts } from '@/features/products'
 
 // ── Skeleton ─────────────────────────────────────────────────────────────────
 function ProductDetailSkeleton() {
@@ -14,42 +21,20 @@ function ProductDetailSkeleton() {
     <div className="sz-detail">
       <div className="sz-product-top" style={{ paddingTop: 0 }}>
         {/* gallery skel */}
-        <div className="sz-skel" style={{ aspectRatio: '1/0.92', borderRadius: 24 }} />
+        <Skeleton style={{ aspectRatio: '1/0.92', borderRadius: 24 }} />
         {/* info skel */}
         <div style={{ paddingTop: 6, display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div className="sz-skel" style={{ height: 12, width: '30%', borderRadius: 8 }} />
-          <div className="sz-skel" style={{ height: 38, width: '80%', borderRadius: 12 }} />
-          <div className="sz-skel" style={{ height: 16, width: '50%', borderRadius: 8 }} />
-          <div className="sz-skel" style={{ height: 34, width: '40%', borderRadius: 8 }} />
-          <div className="sz-skel" style={{ height: 1, width: '100%', borderRadius: 1 }} />
-          <div className="sz-skel" style={{ height: 12, width: '100%', borderRadius: 8 }} />
-          <div className="sz-skel" style={{ height: 12, width: '90%', borderRadius: 8 }} />
-          <div className="sz-skel" style={{ height: 12, width: '75%', borderRadius: 8 }} />
-          <div className="sz-skel" style={{ height: 52, width: '100%', borderRadius: 100, marginTop: 12 }} />
+          <Skeleton style={{ height: 12, width: '30%', borderRadius: 8 }} />
+          <Skeleton style={{ height: 38, width: '80%', borderRadius: 12 }} />
+          <Skeleton style={{ height: 16, width: '50%', borderRadius: 8 }} />
+          <Skeleton style={{ height: 34, width: '40%', borderRadius: 8 }} />
+          <Skeleton style={{ height: 1, width: '100%', borderRadius: 1 }} />
+          <Skeleton style={{ height: 12, width: '100%', borderRadius: 8 }} />
+          <Skeleton style={{ height: 12, width: '90%', borderRadius: 8 }} />
+          <Skeleton style={{ height: 12, width: '75%', borderRadius: 8 }} />
+          <Skeleton style={{ height: 52, width: '100%', borderRadius: 100, marginTop: 12 }} />
         </div>
       </div>
-    </div>
-  )
-}
-
-// ── Star rating display ───────────────────────────────────────────────────────
-function StarRating({ rating, count }: { rating: number; count: number }) {
-  return (
-    <div className="sz-rating-row">
-      <span className="stars" style={{ display: 'flex', gap: 2 }}>
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Star
-            key={i}
-            size={14}
-            style={{
-              fill: i < Math.floor(rating) ? '#FBBF24' : i < rating ? '#FDE68A' : '#D8D3E6',
-              color: i < Math.floor(rating) ? '#FBBF24' : i < rating ? '#FBBF24' : '#D8D3E6',
-            }}
-          />
-        ))}
-      </span>
-      <span className="score">{rating.toFixed(1)}</span>
-      <span className="count">({count} reviews)</span>
     </div>
   )
 }
@@ -139,18 +124,7 @@ function ReviewCard({
             <div className="reviewer-date">{formatDate(date)}</div>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Star
-              key={i}
-              size={12}
-              style={{
-                fill: i < rating ? '#FBBF24' : '#D8D3E6',
-                color: i < rating ? '#FBBF24' : '#D8D3E6',
-              }}
-            />
-          ))}
-        </div>
+        <StarRow rating={rating} size={12} style={{ flexShrink: 0 }} />
       </div>
       <p className="comment">{comment}</p>
     </div>
@@ -251,7 +225,7 @@ export default function ProductDetailPage() {
           <h1>{product.name}</h1>
 
           {/* Rating */}
-          <StarRating rating={product.rating} count={product.reviewCount} />
+          <SzStarRating rating={product.rating} count={product.reviewCount} />
 
           {/* Price */}
           <div className="sz-price-row">
@@ -278,7 +252,7 @@ export default function ProductDetailPage() {
             </div>
           )}
 
-          <hr className="sz-divider" />
+          <Divider />
 
           {/* Description */}
           <div className="sz-about-title">About this product</div>
@@ -298,23 +272,12 @@ export default function ProductDetailPage() {
             <>
               <div className="sz-qty-row">
                 <span className="sz-qty-label">Quantity</span>
-                <div className="sz-qty-control">
-                  <button
-                    onClick={() => setQty(Math.max(1, qty - 1))}
-                    disabled={qty <= 1}
-                    aria-label="Decrease quantity"
-                  >
-                    <Minus size={14} />
-                  </button>
-                  <span className="qval">{qty}</span>
-                  <button
-                    onClick={() => setQty(Math.min(product.stock, qty + 1))}
-                    disabled={qty >= product.stock}
-                    aria-label="Increase quantity"
-                  >
-                    <Plus size={14} />
-                  </button>
-                </div>
+                <QuantityControl
+                  value={qty}
+                  max={product.stock}
+                  onChange={setQty}
+                  iconSize={14}
+                />
                 {qty > 1 && (
                   <span className="sz-qty-total">= {formatCurrency(product.discountedPrice * qty)}</span>
                 )}

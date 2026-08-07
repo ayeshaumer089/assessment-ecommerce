@@ -1,11 +1,18 @@
 import { useState, useMemo } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
-import { Search, SlidersHorizontal, X, ChevronLeft, ChevronRight, LayoutGrid } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
+import { SlidersHorizontal, X, LayoutGrid } from 'lucide-react'
 import { useProducts, useCategories, useCart, useDebounce } from '@/hooks'
-import EmptyState from '@/components/ui/EmptyState'
-import ErrorState from '@/components/ui/ErrorState'
-import { formatCurrency } from '@/utils'
-import { ROUTES } from '@/constants'
+import {
+  Drawer,
+  EmptyState,
+  ErrorState,
+  PageHeader,
+  Pagination,
+  SearchBar,
+  Select,
+  Skeleton,
+} from '@/common/components'
+import { SzProductCard } from '@/features/products'
 import type { Product, ProductFilters } from '@/types'
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -48,76 +55,6 @@ function applyClientFilters(
     )
   }
   return items
-}
-
-// ── ShopZone product card (full-featured, scoped styling) ────────────────────
-function SzProductCard({
-  product,
-  onAddToCart,
-}: {
-  product: Product
-  onAddToCart: (p: Product) => void
-}) {
-  const [added, setAdded] = useState(false)
-  const hasDiscount = product.discountPercentage > 0
-  const isLowStock = product.stock > 0 && product.stock <= 10
-  const isOutOfStock = product.stock === 0
-  const rating = Math.round(product.rating || 0)
-  const detailUrl = ROUTES.CUSTOMER.PRODUCT_DETAIL.replace(':id', product.id)
-
-  const handleAdd = (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (isOutOfStock) return
-    onAddToCart(product)
-    setAdded(true)
-    setTimeout(() => setAdded(false), 2000)
-  }
-
-  return (
-    <div className="sz-prod-card">
-      <Link to={detailUrl} className={`sz-prod-img${isOutOfStock ? ' dim' : ''}`}>
-        <img src={product.image} alt={product.name} loading="lazy" />
-        <div className="sz-prod-badges">
-          {hasDiscount && (
-            <span className="sz-prod-badge disc">-{Math.round(product.discountPercentage)}%</span>
-          )}
-          {isOutOfStock && <span className="sz-prod-badge oos">Out of stock</span>}
-        </div>
-        {isLowStock && !isOutOfStock && (
-          <span className="sz-prod-badge-low">Only {product.stock} left</span>
-        )}
-      </Link>
-      <div className="sz-prod-body">
-        <div className="sz-prod-cat">{product.category}</div>
-        <Link to={detailUrl}><h3>{product.name}</h3></Link>
-        <div className="sz-prod-desc">{product.description}</div>
-        <div className="sz-prod-rating">
-          <span style={{ color: 'var(--gold)' }}>{'★'.repeat(rating)}</span>
-          {'☆'.repeat(5 - rating)}
-          <span className="rc">({product.reviewCount})</span>
-        </div>
-        <div className="sz-prod-foot">
-          <span>
-            <span className="sz-price">{formatCurrency(product.discountedPrice)}</span>
-            {hasDiscount && (
-              <span className="sz-price-old">{formatCurrency(product.price)}</span>
-            )}
-          </span>
-          <span className={`sz-stock${isOutOfStock ? ' out' : ''}`}>
-            {isOutOfStock ? 'Out of stock' : isLowStock ? `${product.stock} left` : 'In stock'}
-          </span>
-        </div>
-        <button
-          className={`sz-btn-cart${added ? ' added' : ''}`}
-          onClick={handleAdd}
-          disabled={isOutOfStock}
-        >
-          {added ? '✓ Added' : '🛒 Add to Cart'}
-        </button>
-      </div>
-    </div>
-  )
 }
 
 // ── Filter panel (sidebar / drawer) ─────────────────────────────────────────
@@ -207,80 +144,6 @@ function FilterPanel({
   )
 }
 
-// ── Pagination ───────────────────────────────────────────────────────────────
-interface PaginationProps {
-  page: number
-  totalPages: number
-  total: number
-  limit: number
-  onPage: (p: number) => void
-}
-
-function Pagination({ page, totalPages, total, limit, onPage }: PaginationProps) {
-  if (totalPages <= 1) return null
-
-  const start = (page - 1) * limit + 1
-  const end   = Math.min(page * limit, total)
-
-  const pages: (number | '…')[] = []
-  if (totalPages <= 7) {
-    for (let i = 1; i <= totalPages; i++) pages.push(i)
-  } else {
-    pages.push(1)
-    if (page > 3) pages.push('…')
-    for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) pages.push(i)
-    if (page < totalPages - 2) pages.push('…')
-    pages.push(totalPages)
-  }
-
-  return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-10 pt-6 border-t border-[var(--line)]">
-      <p className="text-sm text-[var(--ink-soft)]">
-        Showing <span className="font-semibold text-[var(--ink)]">{start}–{end}</span> of{' '}
-        <span className="font-semibold text-[var(--ink)]">{total}</span> products
-      </p>
-
-      <div className="flex items-center gap-1">
-        <button
-          onClick={() => onPage(page - 1)}
-          disabled={page === 1}
-          className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-[var(--ink-soft)] hover:text-[var(--ink)] hover:bg-[#F5F3FA] rounded-xl disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-        >
-          <ChevronLeft size={15} /> Prev
-        </button>
-
-        {pages.map((p, i) =>
-          p === '…' ? (
-            <span key={`ellipsis-${i}`} className="w-9 h-9 flex items-center justify-center text-gray-400 text-sm">
-              …
-            </span>
-          ) : (
-            <button
-              key={p}
-              onClick={() => onPage(p)}
-              className={`w-9 h-9 flex items-center justify-center rounded-xl text-sm font-medium transition-colors ${
-                p === page
-                  ? 'bg-[var(--violet)] text-white'
-                  : 'text-[var(--ink-soft)] hover:bg-[#F5F3FA]'
-              }`}
-            >
-              {p}
-            </button>
-          ),
-        )}
-
-        <button
-          onClick={() => onPage(page + 1)}
-          disabled={page === totalPages}
-          className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-[var(--ink-soft)] hover:text-[var(--ink)] hover:bg-[#F5F3FA] rounded-xl disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-        >
-          Next <ChevronRight size={15} />
-        </button>
-      </div>
-    </div>
-  )
-}
-
 // ── Main component ───────────────────────────────────────────────────────────
 export default function ProductList() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -353,10 +216,10 @@ export default function ProductList() {
   return (
     <div className="sz-home">
       {/* Page header */}
-      <div className="sz-page-head">
-        <h1>Products</h1>
-        <p>{isLoading ? 'Loading…' : `${data?.total ?? filteredItems.length} items available`}</p>
-      </div>
+      <PageHeader
+        title="Products"
+        subtitle={isLoading ? 'Loading…' : `${data?.total ?? filteredItems.length} items available`}
+      />
 
       <div className="flex gap-7">
         {/* ── Desktop filter sidebar ────────────────────────────────── */}
@@ -378,32 +241,22 @@ export default function ProductList() {
         <div className="flex-1 min-w-0">
           {/* Search + sort + mobile filter button */}
           <div className="sz-toolbar">
-            <div className="sz-search-bar">
-              <Search size={16} className="shrink-0" />
-              <input
-                type="search"
-                value={rawSearch}
-                onChange={(e) => setParam('q', e.target.value)}
-                placeholder="Search products…"
-              />
-              {rawSearch && (
-                <button className="clr" onClick={() => setParam('q', '')} aria-label="Clear search">
-                  <X size={15} />
-                </button>
-              )}
-            </div>
+            <SearchBar
+              type="search"
+              value={rawSearch}
+              onChange={(value) => setParam('q', value)}
+              onClear={() => setParam('q', '')}
+              placeholder="Search products…"
+              iconSize={16}
+              iconClassName="shrink-0"
+            />
 
-            <select
+            <Select
               className="sz-sort-select"
               value={sort}
               onChange={(e) => setParam('sort', e.target.value)}
-            >
-              {SORT_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
+              options={SORT_OPTIONS}
+            />
 
             {/* Mobile filter toggle */}
             <button className="sz-filter-btn lg:hidden" onClick={() => setDrawerOpen(true)}>
@@ -452,7 +305,7 @@ export default function ProductList() {
           ) : isLoading ? (
             <div className="sz-products-grid">
               {Array.from({ length: PAGE_SIZE }).map((_, i) => (
-                <div key={i} className="sz-skel" style={{ height: 360 }} />
+                <Skeleton key={i} style={{ height: 360 }} />
               ))}
             </div>
           ) : displayedItems.length === 0 ? (
@@ -499,44 +352,25 @@ export default function ProductList() {
       </div>
 
       {/* ── Mobile filter drawer ─────────────────────────────────────── */}
-      {drawerOpen && (
-        <>
-          <div
-            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden"
-            onClick={() => setDrawerOpen(false)}
-          />
-          <div className="fixed inset-y-0 right-0 z-50 w-72 bg-white shadow-2xl flex flex-col lg:hidden">
-            <div className="flex items-center justify-between px-5 h-16 border-b border-[var(--line)] shrink-0">
-              <h3 className="font-semibold text-[var(--ink)]">Filters</h3>
-              <button
-                onClick={() => setDrawerOpen(false)}
-                className="p-2 rounded-lg text-gray-500 hover:bg-gray-100"
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-5">
-              {catsLoading ? (
-                <div className="space-y-3">
-                  {Array.from({ length: 8 }).map((_, i) => (
-                    <div key={i} className="h-9 bg-gray-100 rounded-xl animate-pulse" />
-                  ))}
-                </div>
-              ) : (
-                <FilterPanel
-                  categories={categoriesData}
-                  selectedCategory={category}
-                  priceRange={priceRange}
-                  onCategory={(v) => { setParam('category', v); setDrawerOpen(false) }}
-                  onPriceRange={(v) => { setParam('price', v === '0' ? '' : v); setDrawerOpen(false) }}
-                  onReset={resetFilters}
-                  activeCount={activeFilterCount}
-                />
-              )}
-            </div>
+      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title="Filters">
+        {catsLoading ? (
+          <div className="space-y-3">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="h-9 bg-gray-100 rounded-xl animate-pulse" />
+            ))}
           </div>
-        </>
-      )}
+        ) : (
+          <FilterPanel
+            categories={categoriesData}
+            selectedCategory={category}
+            priceRange={priceRange}
+            onCategory={(v) => { setParam('category', v); setDrawerOpen(false) }}
+            onPriceRange={(v) => { setParam('price', v === '0' ? '' : v); setDrawerOpen(false) }}
+            onReset={resetFilters}
+            activeCount={activeFilterCount}
+          />
+        )}
+      </Drawer>
     </div>
   )
 }

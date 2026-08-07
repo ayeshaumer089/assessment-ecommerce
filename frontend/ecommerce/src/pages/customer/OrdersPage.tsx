@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Package, Clock, Truck, CheckCircle2, XCircle, ShoppingBag, ChevronDown, ChevronUp, MapPin, CreditCard } from 'lucide-react'
+import { Package, Clock, Truck, CheckCircle2, XCircle, ShoppingBag, ChevronDown, ChevronUp } from 'lucide-react'
 import { useOrders, useCancelOrder } from '@/hooks'
 import { ROUTES } from '@/constants'
 import { formatCurrency, formatDate } from '@/utils'
+import { AddressPaymentRow, PageHeader, SzEmptyState, Tabs } from '@/common/components'
+import type { TabItem } from '@/common/components'
 import type { Order, OrderStatus } from '@/types'
 
 type Filter = 'all' | 'active' | 'delivered' | 'cancelled'
@@ -126,20 +128,11 @@ function OrderCard({ order }: { order: Order }) {
             <div className="sz-srow total"><span>Total</span><span>{formatCurrency(order.total)}</span></div>
           </div>
 
-          <div className="sz-ship-pay-row">
-            <div className="sz-sp-block">
-              <div className="sz-sp-label"><MapPin size={11} /> Shipped To</div>
-              <div className="sz-sp-val">
-                {order.shippingAddress.street}<br />
-                {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zipCode}<br />
-                {order.shippingAddress.country}
-              </div>
-            </div>
-            <div className="sz-sp-block">
-              <div className="sz-sp-label"><CreditCard size={11} /> Payment</div>
-              <div className="sz-sp-val">{order.paymentMethod}</div>
-            </div>
-          </div>
+          <AddressPaymentRow
+            address={order.shippingAddress}
+            paymentMethod={order.paymentMethod}
+            addressLabel="Shipped To"
+          />
         </div>
       )}
     </div>
@@ -168,22 +161,25 @@ function OrderSkeleton() {
 
 function EmptyOrders({ filter }: { filter: Filter }) {
   return (
-    <div className="sz-empty">
-      <div className="icon-wrap"><Package size={34} /></div>
-      <h3>{filter === 'all' ? 'No orders yet' : `No ${filter} orders`}</h3>
-      <p>
-        {filter === 'all'
+    <SzEmptyState
+      as="h3"
+      icon={<Package size={34} />}
+      title={filter === 'all' ? 'No orders yet' : `No ${filter} orders`}
+      description={
+        filter === 'all'
           ? "You haven't placed any orders yet. Start shopping!"
-          : `You don't have any ${filter} orders right now.`}
-      </p>
-      {filter === 'all' && (
-        <Link to={ROUTES.CUSTOMER.PRODUCTS}>
-          <button className="sz-btn-shop">
-            <ShoppingBag size={16} /> Start Shopping
-          </button>
-        </Link>
-      )}
-    </div>
+          : `You don't have any ${filter} orders right now.`
+      }
+      action={
+        filter === 'all' && (
+          <Link to={ROUTES.CUSTOMER.PRODUCTS}>
+            <button className="sz-btn-shop">
+              <ShoppingBag size={16} /> Start Shopping
+            </button>
+          </Link>
+        )
+      }
+    />
   )
 }
 
@@ -196,30 +192,20 @@ export default function OrdersPage() {
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   )
 
+  const tabs: TabItem<Filter>[] = FILTERS.map(({ key, label }) => ({
+    key,
+    label,
+    count: key === 'all' ? orders.length : orders.filter((o) => matchesFilter(o, key)).length,
+  }))
+
   return (
     <div className="sz-orders">
-      <div className="sz-page-head">
-        <h1>My Orders</h1>
-        <p>{orders.length} {orders.length === 1 ? 'order' : 'orders'} total</p>
-      </div>
+      <PageHeader
+        title="My Orders"
+        subtitle={<>{orders.length} {orders.length === 1 ? 'order' : 'orders'} total</>}
+      />
 
-      <div className="sz-tabs">
-        {FILTERS.map(({ key, label }) => {
-          const count = key === 'all'
-            ? orders.length
-            : orders.filter((o) => matchesFilter(o, key)).length
-          return (
-            <button
-              key={key}
-              className={`sz-tab${filter === key ? ' active' : ''}`}
-              onClick={() => setFilter(key)}
-            >
-              {label}
-              <span className="count">{count}</span>
-            </button>
-          )
-        })}
-      </div>
+      <Tabs tabs={tabs} active={filter} onChange={setFilter} />
 
       {isLoading ? (
         <div className="sz-skel">
